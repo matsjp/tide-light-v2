@@ -1,0 +1,4 @@
+pause
+xmltodict
+requests
+rpi_ws281x
