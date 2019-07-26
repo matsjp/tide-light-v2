@@ -6,13 +6,13 @@ from tidelight import TideTimeCollection, TideTime
 
 
 def get_next_time_from():
-    return datetime.now().strftime("%Y-%m-%dT%H:%M")
+    d = datetime.now() + timedelta(days=-1)
+    return d.strftime("%Y-%m-%dT%H:%M")
 
 
 def get_next_time_to():
     time = datetime.now() + timedelta(days=7)
     return time.strftime("%Y-%m-%dT%H:%M")
-
 
 def get_next_api_run():
     return datetime.now() + timedelta(days=1)
@@ -21,7 +21,8 @@ def get_next_api_run():
 def get_TideTimeCollection_from_xml_string(xml_string):
     tide_time_collection = TideTimeCollection()
     tide = ET.fromstring(xml_string)
-    locationdata = tide[1]
+    print(tide)
+    locationdata = tide[0]
     data = locationdata[2]
     for waterlevel in data:
         tide = waterlevel.attrib["flag"] == "low"
