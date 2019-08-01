@@ -2,27 +2,24 @@ from tidelight import TideTime
 from datetime import datetime
 from sympy import *
 
+
 class TideTimeCollection:
-    tide_times = []
 
-
-    def __init__(self, led_count, tide_times=None):
+    def __init__(self, led_count):
         self.led_count = led_count
 
-        #The leds that indicate tide level, not tide direction
+        # The leds that indicate tide level, not tide direction
         self.tide_level_led_count = led_count - 2
 
-        #Tuple (last timestamp, led being lighted, tide direction)
+        # Tuple (last timestamp, led being lighted, tide direction)
         self.last_timestamp_collection = None
 
-        if tide_times is not None:
-            self.insert_tide_times(tide_times)
+        self.tide_times = []
 
-
-    def insert_tide_times(self, tide_times_list):
+    def insert_tide_times(self, tide_times_list, now):
         times_to_be_removed = -1
         for i in range(0, len(tide_times_list)):
-            if tide_times_list[i].timestamp < datetime.now().timestamp():
+            if tide_times_list[i].timestamp < now:
                 times_to_be_removed += 1
             else:
                 break
@@ -33,17 +30,29 @@ class TideTimeCollection:
             if not self.is_duplicate(tide_time):
                 self.tide_times.append(tide_time)
 
-
     def is_empty(self):
         return not self.tide_times
 
-
     def is_duplicate(self, tide_time):
-        for t in self.tide_times:
-            if t.timestamp == tide_time.timestamp:
-                return True
-        return False
-
+        return tide_time in self.tide_times
 
     def get_tide_direction(self):
         return self.tide_times[1].tide
+
+    def get_timestamp_collection(self, now):
+        try:
+            if self.is_empty():
+                #Raise indexerror?
+                #Raise some error indicating that the list is empty?
+                self.last_timestamp_collection = None
+            if self.last_timestamp_collection is None:
+                last_tide = self.tide_times[0]
+                next_tide = self.tide_times[1]
+                fraction = (now - last_tide.timestamp) / (next_tide.timestamp - last_tide.timestamp)
+                for i in range(1, self.tide_level_led_count):
+                    if fraction >=
+            else:
+                pass
+        except IndexError:
+            self.last_timestamp_collection = None
+            return None

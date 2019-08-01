@@ -115,7 +115,7 @@ class TideTimeCollection:
             
         except IndexError:
             self.last_timestamp_collection = None
-            raise IndexError
+            return None
         
 
 

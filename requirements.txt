@@ -1,3 +1,4 @@
+sympy
 pause
 xmltodict
 requests
