@@ -42,17 +42,30 @@ class TideTimeCollection:
     def get_timestamp_collection(self, now):
         try:
             if self.is_empty():
-                #Raise indexerror?
-                #Raise some error indicating that the list is empty?
+                # Raise indexerror?
+                # Raise some error indicating that the list is empty?
                 self.last_timestamp_collection = None
             if self.last_timestamp_collection is None:
                 last_tide = self.tide_times[0]
                 next_tide = self.tide_times[1]
-                fraction = (now - last_tide.timestamp) / (next_tide.timestamp - last_tide.timestamp)
-                for i in range(1, self.tide_level_led_count):
-                    if fraction >=
+
+                time_difference = next_tide.timestamp - last_tide.timestamp
+                print(time_difference)
+                time_difference_fraction = time_difference/self.tide_level_led_count
+                print(time_difference_fraction)
+
+                for i in range(1, len(self.tide_times)):
+                    if (i - 1) * time_difference_fraction + last_tide.timestamp <= now < i*time_difference_fraction + last_tide.timestamp:
+                        print(i)
+                        direction = self.get_tide_direction()
+                        timestamp = (i*time_difference_fraction * last_tide.timestamp, i, direction)
+                        self.last_timestamp_collection = (i*time_difference_fraction + last_tide.timestamp, i, direction)
+                        return timestamp, (None, i - 1, direction)
             else:
-                pass
+                led = self.last_timestamp_collection[1]
+                if led == self.tide_level_led_count:
+                    self.tide_times.pop(0)
+                    led = 1
         except IndexError:
             self.last_timestamp_collection = None
             return None

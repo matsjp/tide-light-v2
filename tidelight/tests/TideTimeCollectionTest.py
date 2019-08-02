@@ -84,19 +84,24 @@ def test_get_tide_direction_false():
 
 def test_get_timestamp_collection_empty():
     tide_time_collection = TideTimeCollection(10)
-    assert tide_time_collection.get_timestamp_collection() is None
+    assert tide_time_collection.get_timestamp_collection(15) is None
 
 
 def test_get_timestamp_collection_index_error():
     tide_times = [TideTime(tide=True, timestamp=10, time=""), TideTime(tide=False, timestamp=20, time="")]
     tide_time_collection = TideTimeCollection(10)
 
-    tide_time_collection.insert_tide_times(tide_times, 15)
-    assert tide_time_collection.last_timestamp_collection is None
+    tide_time_collection.insert_tide_times(tide_times, 25)
+    assert tide_time_collection.get_timestamp_collection(15) is None
 
 
+def test_get_timestamp_collection_first_time():
+    tide_times = [TideTime(tide=False, timestamp=10, time=""), TideTime(tide=True, timestamp=20, time=""),
+                  TideTime(tide=False, timestamp=30, time=""), TideTime(tide=True, timestamp=40, time="")]
+    tide_time_collection = TideTimeCollection(6)
 
+    tide_time_collection.insert_tide_times(tide_times, 11)
 
-
-
-
+    timestamp_collection = tide_time_collection.get_timestamp_collection(11)
+    print(timestamp_collection)
+    assert timestamp_collection == ((12.5, 2, True), (None, 1, True))
