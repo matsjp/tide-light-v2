@@ -1,8 +1,7 @@
 from tidelight import TideTime
 from datetime import datetime
-from sympy import *
 # For giving extra timestamp info during debugging
-import pytz
+#import pytz
 
 
 class TideTimeCollection:
@@ -60,10 +59,11 @@ class TideTimeCollection:
                     timestamp = i * time_difference_fraction + last_tide.timestamp
 
                     # Convert timestamp to datetime in Norwegian timezone
-                    utc_dt = datetime.utcfromtimestamp(timestamp)
-                    aware_utc_dt = utc_dt.replace(tzinfo=pytz.utc)
-                    tz = pytz.timezone('Europe/Oslo')
-                    dt = datetime.fromtimestamp(timestamp, tz)
+                    #utc_dt = datetime.utcfromtimestamp(timestamp)
+                    #aware_utc_dt = utc_dt.replace(tzinfo=pytz.utc)
+                    #tz = pytz.timezone('Europe/Oslo')
+                    #dt = datetime.fromtimestamp(timestamp, tz)
+                    dt=""
 
                     return timestamp, i, direction, dt
 

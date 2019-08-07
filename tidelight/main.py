@@ -10,6 +10,16 @@ import time
 import threading
 import pause
 from datetime import datetime
+from TideLightLedStrip import TideLightLedStrip
+
+
+LED_COUNT = 60
+LED_PIN        = 18
+LED_FREQ_HZ    = 800000  # LED signal frequency in hertz (usually 800khz)
+LED_DMA        = 10      # DMA channel to use for generating signal (try 10)
+LED_BRIGHTNESS = 50    # Set to 0 for darkest and 255 for brightest
+LED_INVERT     = False   # True to invert the signal (when using NPN transistor level shift)
+LED_CHANNEL    = 0       # set to '1' for GPIOs 13, 19, 41, 45 or 53
 
 
 def get_location_data_thread(api: TideApi):
@@ -38,6 +48,7 @@ def get_location_data_thread(api: TideApi):
                     tide_time_collection_lock.release()
                     print("Location release")
                     pause.until(get_next_api_run())
+                #TODO: Connection error excaption
                 except requests.Timeout:
                     tide_time_collection_lock.notify_all()
                     tide_time_collection_lock.release()
@@ -47,7 +58,8 @@ def get_location_data_thread(api: TideApi):
 
 
 def lighting_thread():
-    global led_count
+    global LED_COUNT
+    global strip
     while True:
         tide_time_collection_lock.acquire()
         print("Light acquire")
@@ -72,10 +84,11 @@ def lighting_thread():
                 direction = time_stamp_collection[2]
                 led_string = "{} {}{} {}"
                 if direction:
-                    led_string = led_string.format("o", "x"*led, "o"*(led_count - led), "x")
+                    led_string = led_string.format("o", "x"*led, "o"*(LED_COUNT - 2 - led), "x")
                 else:
-                    led_string = led_string.format("x", "x"*(led_count - (led-1)), "o" * (led - 1), "o")
+                    led_string = led_string.format("x", "x"*(LED_COUNT - 2 - (led-1)), "o" * (led - 1), "o")
                 print(led_string)
+                strip.update_tide_leds(led, direction)
                 tide_time_collection_lock.notify_all()
                 tide_time_collection_lock.release()
                 print("Light release")
@@ -89,9 +102,10 @@ config.read('config.ini')
 lon = config.get('apivalues', 'lon')
 lat = config.get('apivalues', 'lat')
 
-led_count = 60
+strip = TideLightLedStrip(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL)
+strip.begin()
 
-tide_time_collection = TideTimeCollection3.TideTimeCollection(led_count)
+tide_time_collection = TideTimeCollection3.TideTimeCollection(LED_COUNT)
 tide_time_collection_lock = threading.Condition()
 
 api = TideApi(lon, lat)
