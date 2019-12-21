@@ -104,7 +104,7 @@ def lighting_thread(led_queue):
                 print("Light release")
                 pause.until(timestamp)
 
-def strip_controller_thread(strip, led_queue):
+def strip_controller_thread(strip, led_queue, led_count):
     #get the first data about led and direction from the lighting_thread
     first_time_data = led_queue.get()
     led = first_time_data.led
@@ -115,7 +115,7 @@ def strip_controller_thread(strip, led_queue):
             new_data = led_queue.get()
             led = new_data.led
             direction = new_data.direction
-        led_wave(strip, led, direction, Color(255, 0, 255), Color(128,0,128), Color(0, 0, 255))
+        led_wave(strip, led, direction, led_count, Color(255, 0, 255), Color(128,0,128), Color(0, 0, 255))
 
 
 # TODO: create config file if it doesn't exist
@@ -136,7 +136,7 @@ tide_time_collection_lock = threading.Condition()
 api = TideApi(lon, lat)
 location_data_thread = threading.Thread(target=get_location_data_thread, args=(api,))
 lighting_thread = threading.Thread(target=lighting_thread, args=(led_queue,))
-controller_thread = threading.Thread(target=strip_controller_thread, args=(strip, led_queue))
+controller_thread = threading.Thread(target=strip_controller_thread, args=(strip, led_queue, LED_COUNT))
 location_data_thread.start()
 lighting_thread.start()
 controller_thread.start()
