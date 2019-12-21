@@ -39,6 +39,7 @@ def get_location_data_thread(api: TideApi):
                 pause.until(sleep_until)
             else:
                 try:
+                    print("sending request")
                     response = api.get_location_data(get_next_time_from(), get_next_time_to())
                     print(response)
                     coll = get_TideTimeCollection_from_xml_string(response)
@@ -58,6 +59,8 @@ def get_location_data_thread(api: TideApi):
                     print("Location release")
                     time.sleep(30)
                     continue
+                except:
+                    print("Error occured: ", sys.exc_info()[0])
 
 
 def lighting_thread(led_queue):
