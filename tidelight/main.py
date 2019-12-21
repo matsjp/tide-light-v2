@@ -52,6 +52,7 @@ def get_location_data_thread(api: TideApi):
                 except requests.Timeout:
                     tide_time_collection_lock.notify_all()
                     tide_time_collection_lock.release()
+                    print("Connection timeout")
                     print("Location release")
                     time.sleep(30)
                     continue
