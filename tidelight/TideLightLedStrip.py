@@ -25,7 +25,7 @@ class TideLightLedStrip(PixelStrip):
             self.setPixelColor(0, self._Off())
             self.setPixelColor(self.numPixels() - 1, self._Green())
             for i in range(1, led_number + 1):
-                self.setPixelColor(i, self._Clue())
+                self.setPixelColor(i, self._Blue())
             for i in range(led_number + 1, self.numPixels() - 1):
                 self.setPixelColor(i, self._Purple())
         else:
