@@ -115,7 +115,7 @@ def strip_controller_thread(strip, led_queue, led_count):
             new_data = led_queue.get()
             led = new_data.led
             direction = new_data.direction
-        led_wave(strip, led, direction, led_count, Color(255, 0, 255), Color(128,0,128), Color(0, 0, 255))
+        led_wave(strip, led, direction, led_count, Color(0, 255, 255), Color(255, 0, 255) Color(128,0,128), Color(0, 0, 255))
 
 
 # TODO: create config file if it doesn't exist
@@ -144,7 +144,7 @@ controller_thread.start()
 
 
 
-def led_wave(strip, led, direction, led_count, moving_color, still_color_top, still_color_bottom):
+def led_wave(strip, led, direction, led_count, moving_color_top, moving_color_bottom, still_color_top, still_color_bottom):
     # If going to tide
     if direction:
         for i in range(1, led_count - 1):
@@ -154,11 +154,14 @@ def led_wave(strip, led, direction, led_count, moving_color, still_color_top, st
                 else:
                     strip.setPixelColor(led_count - 2, still_color_bottom)
             else:
-                if i - 1 < led:
+                if i - 1 <= led:
                     strip.setPixelColor(i - 1, still_color_bottom)
                 else:
                     strip.setPixelColor(i - 1, still_color_top)
-            strip.setPixelColor(i, moving_color)
+            if i <= led:
+                strip.setPixelColor(i, moving_color_bottom)
+            else:
+                strip.setPixelColor(i, moving_color_top)
             strip.show()
             time.sleep(0.25)
     else:
@@ -169,11 +172,14 @@ def led_wave(strip, led, direction, led_count, moving_color, still_color_top, st
                 else:
                     strip.setPixelColor(1, still_color_top)
             else:
-                if i + 1 < led:
+                if i + 1 <= led:
                     strip.setPixelColor(i + 1, still_color_bottom)
                 else:
                     strip.setPixelColor(i + 1, still_color_top)
-            strip.setPixelColor(i, moving_color)
+            if i < led:
+                strip.setPixelColor(i, moving_color_bottom)
+            else:
+                strip.setPixelColor(i, moving_color_top)
             strip.show()
             time.sleep(0.25)
 
