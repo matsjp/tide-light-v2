@@ -12,15 +12,16 @@ import threading
 import pause
 from datetime import datetime
 from TideLightLedStrip import TideLightLedStrip
-
+from queue import Queue
+from rpi_ws281x import *
 
 LED_COUNT = 60
-LED_PIN        = 18
-LED_FREQ_HZ    = 800000  # LED signal frequency in hertz (usually 800khz)
-LED_DMA        = 10      # DMA channel to use for generating signal (try 10)
-LED_BRIGHTNESS = 50    # Set to 0 for darkest and 255 for brightest
-LED_INVERT     = False   # True to invert the signal (when using NPN transistor level shift)
-LED_CHANNEL    = 0       # set to '1' for GPIOs 13, 19, 41, 45 or 53
+LED_PIN = 18
+LED_FREQ_HZ = 800000  # LED signal frequency in hertz (usually 800khz)
+LED_DMA = 10  # DMA channel to use for generating signal (try 10)
+LED_BRIGHTNESS = 50  # Set to 0 for darkest and 255 for brightest
+LED_INVERT = False  # True to invert the signal (when using NPN transistor level shift)
+LED_CHANNEL = 0  # set to '1' for GPIOs 13, 19, 41, 45 or 53
 
 
 def get_location_data_thread(api: TideApi):
@@ -49,7 +50,7 @@ def get_location_data_thread(api: TideApi):
                     tide_time_collection_lock.release()
                     print("Location release")
                     pause.until(get_next_api_run())
-                #TODO: Connection error excaption
+                # TODO: Connection error excaption
                 except requests.Timeout:
                     tide_time_collection_lock.notify_all()
                     tide_time_collection_lock.release()
@@ -59,9 +60,8 @@ def get_location_data_thread(api: TideApi):
                     continue
 
 
-def lighting_thread():
+def lighting_thread(led_queue):
     global LED_COUNT
-    global strip
     while True:
         tide_time_collection_lock.acquire()
         print("Light acquire")
@@ -72,7 +72,7 @@ def lighting_thread():
             time.sleep(30)
         else:
             now = datetime.now().timestamp()
-            #TODO: better variable name
+            # TODO: better variable name
             time_stamp_collection = tide_time_collection.get_timestamp_collection(now)
             if time_stamp_collection is None:
                 tide_time_collection_lock.notify_all()
@@ -86,16 +86,28 @@ def lighting_thread():
                 direction = time_stamp_collection[2]
                 led_string = "{} {}{} {}"
                 if direction:
-                    led_string = led_string.format("o", "x"*led, "o"*(LED_COUNT - 2 - led), "x")
+                    led_string = led_string.format("o", "x" * led, "o" * (LED_COUNT - 2 - led), "x")
                 else:
-                    led_string = led_string.format("x", "x"*(LED_COUNT - 2 - (led-1)), "o" * (led - 1), "o")
+                    led_string = led_string.format("x", "x" * (LED_COUNT - 2 - (led - 1)), "o" * (led - 1), "o")
                 print(led_string)
-                strip.update_tide_leds(led, direction)
+                led_queue.put(LedDirection(led, direction))
                 tide_time_collection_lock.notify_all()
                 tide_time_collection_lock.release()
                 print("Light release")
                 pause.until(timestamp)
 
+def strip_controller_thread(strip, led_queue):
+    #get the first data about led and direction from the lighting_thread
+    first_time_data = led_queue.get()
+    led = first_time_data.led
+    direction = first_time_data.direction
+    strip.update_tide_leds(led, direction)
+    while True:
+        if not led_queue.empty():
+            new_data = led_queue.get()
+            led = new_data.led
+            direction = new_data.direction
+        led_wave(strip, led, direction, Color(255, 0, 255), Color(128,0,128))
 
 
 # TODO: create config file if it doesn't exist
@@ -107,11 +119,44 @@ lat = config.get('apivalues', 'lat')
 strip = TideLightLedStrip(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL)
 strip.begin()
 
+led_queue = Queue()
+
+
 tide_time_collection = TideTimeCollection3.TideTimeCollection(LED_COUNT)
 tide_time_collection_lock = threading.Condition()
 
 api = TideApi(lon, lat)
 location_data_thread = threading.Thread(target=get_location_data_thread, args=(api,))
-lighting_thread = threading.Thread(target=lighting_thread)
+lighting_thread = threading.Thread(target=lighting_thread, args=(led_queue,))
+controller_thread = threading.Thread(target=strip_controller_thread, args=(strip, led_queue))
 location_data_thread.start()
 lighting_thread.start()
+
+
+
+
+def led_wave(strip, led, direction, moving_color, still_color):
+    # If going to tide
+    if direction:
+        for i in range(1, led):
+            if i == 1:
+                strip.setPixelColor(led - 1, still_color)
+            else:
+                strip.setPixelColor(i - 1, still_color)
+            strip.setPixelColor(i, moving_color)
+            strip.show()
+            time.sleep(0.5)
+    else:
+        for i in range(led - 1, 0, -1):
+            if i == led - 1:
+                strip.setPixelColor(1, still_color)
+            else:
+                strip.setPixelColor(1 + 1, still_color)
+            strip.setPixelColor(i, moving_color)
+            strip.show()
+            time.sleep(0.5)
+
+class LedDirection:
+    def __init__(self, led, direction):
+        self.led = led
+        self.direction = direction
