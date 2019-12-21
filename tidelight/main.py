@@ -115,7 +115,7 @@ def strip_controller_thread(strip, led_queue, led_count):
             new_data = led_queue.get()
             led = new_data.led
             direction = new_data.direction
-        led_wave(strip, led, direction, led_count, Color(255, 0, 255), Color(0, 255, 255), Color(128,0,128), Color(0, 0, 255))
+        led_wave(strip, led, direction, led_count, Color(255, 0, 255), Color(0, 255, 255), Color(128,0,128), Color(0, 0, 255), 0.5)
 
 
 # TODO: create config file if it doesn't exist
@@ -144,7 +144,7 @@ controller_thread.start()
 
 
 
-def led_wave(strip, led, direction, led_count, moving_color_top, moving_color_bottom, still_color_top, still_color_bottom):
+def led_wave(strip, led, direction, led_count, moving_color_top, moving_color_bottom, still_color_top, still_color_bottom, speed):
     # If going to tide
     if direction:
         for i in range(1, led_count - 1):
@@ -163,7 +163,7 @@ def led_wave(strip, led, direction, led_count, moving_color_top, moving_color_bo
             else:
                 strip.setPixelColor(i, moving_color_top)
             strip.show()
-            time.sleep(0.25)
+            time.sleep(speed)
     else:
         for i in range(led_count - 2, 0, -1):
             if i == led_count - 2:
@@ -181,5 +181,5 @@ def led_wave(strip, led, direction, led_count, moving_color_top, moving_color_bo
             else:
                 strip.setPixelColor(i, moving_color_top)
             strip.show()
-            time.sleep(0.25)
+            time.sleep(speed)
 
