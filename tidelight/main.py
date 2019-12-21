@@ -1,3 +1,4 @@
+print("starting tidelight script")
 import sys
 
 sys.path.append('../')
