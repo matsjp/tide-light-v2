@@ -150,7 +150,7 @@ def led_wave(strip, led, direction, led_count, moving_color, still_color_top, st
     #remove top and bottom led
     led_count = led_count - 2
     if direction:
-        for i in range(1, ):
+        for i in range(1, led_count):
             if i == 1:
                 if led < led_count:
                     strip.setPixelColor(led_count, still_color_top)
@@ -163,7 +163,7 @@ def led_wave(strip, led, direction, led_count, moving_color, still_color_top, st
                     strip.setPixelColor(i - 1, still_color_bottom)
             strip.setPixelColor(i, moving_color)
             strip.show()
-            time.sleep(0.5)
+            time.sleep(0.25)
     else:
         for i in range(led_count, 0, -1):
             if i == led_count:
@@ -178,5 +178,5 @@ def led_wave(strip, led, direction, led_count, moving_color, still_color_top, st
                     strip.setPixelColor(i + 1, still_color_top)
             strip.setPixelColor(i, moving_color)
             strip.show()
-            time.sleep(0.5)
+            time.sleep(0.25)
 
