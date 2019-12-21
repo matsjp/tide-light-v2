@@ -23,6 +23,11 @@ LED_BRIGHTNESS = 50  # Set to 0 for darkest and 255 for brightest
 LED_INVERT = False  # True to invert the signal (when using NPN transistor level shift)
 LED_CHANNEL = 0  # set to '1' for GPIOs 13, 19, 41, 45 or 53
 
+class LedDirection:
+    def __init__(self, led, direction):
+        self.led = led
+        self.direction = direction
+
 
 def get_location_data_thread(api: TideApi):
     sleep_until = 0
@@ -134,6 +139,7 @@ lighting_thread = threading.Thread(target=lighting_thread, args=(led_queue,))
 controller_thread = threading.Thread(target=strip_controller_thread, args=(strip, led_queue))
 location_data_thread.start()
 lighting_thread.start()
+controller_thread.start()
 
 
 
@@ -159,7 +165,3 @@ def led_wave(strip, led, direction, moving_color, still_color):
             strip.show()
             time.sleep(0.5)
 
-class LedDirection:
-    def __init__(self, led, direction):
-        self.led = led
-        self.direction = direction
