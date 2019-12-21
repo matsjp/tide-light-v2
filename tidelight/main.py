@@ -115,7 +115,7 @@ def strip_controller_thread(strip, led_queue, led_count):
             new_data = led_queue.get()
             led = new_data.led
             direction = new_data.direction
-        led_wave(strip, led, direction, led_count, Color(0, 255, 255), Color(255, 0, 255) Color(128,0,128), Color(0, 0, 255))
+        led_wave(strip, led, direction, led_count, Color(0, 255, 255), Color(255, 0, 255), Color(128,0,128), Color(0, 0, 255))
 
 
 # TODO: create config file if it doesn't exist
