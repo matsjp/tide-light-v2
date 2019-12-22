@@ -115,6 +115,7 @@ def strip_controller_thread(strip, led_queue, led_count):
             new_data = led_queue.get()
             led = new_data.led
             direction = new_data.direction
+            strip.update_tide_leds(led, direction)
         led_wave(strip, led, direction, led_count, Color(255, 0, 255), Color(0, 255, 255), Color(128,0,128), Color(0, 0, 255), 0.5)
 
 
