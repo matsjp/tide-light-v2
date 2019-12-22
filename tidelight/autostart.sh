@@ -6,7 +6,7 @@ echo $len
 indexes=$(($len - 13))
 echo $indexes
 path=${SCRIPT:0:indexes }
-insertedcommand="sudo -- bash -c \"cd $path && nohup python3 main.py &\""
+insertedcommand="sudo -- bash -c \"cd $path && nohup python3 -u main.py &\""
 echo $path
 echo $insertedcommand
 grepresult="$(grep -nr 'exit 0' /etc/rc.local | tail -1 | cut -d : -f 1)"
