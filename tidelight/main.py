@@ -1,5 +1,6 @@
 print("starting tidelight script")
 import sys
+import RPi.GPIO as GPIO
 
 sys.path.append('../')
 import configparser
@@ -104,28 +105,51 @@ def lighting_thread(led_queue):
                 print("Light release")
                 pause.until(timestamp)
 
-def strip_controller_thread(strip, led_queue, led_count):
+def strip_controller_thread(strip, strip_lock, led_queue, led_count):
     #get the first data about led and direction from the lighting_thread
     first_time_data = led_queue.get()
     led = first_time_data.led
     direction = first_time_data.direction
-    strip.update_tide_leds(led, direction)
+    with strip_lock:
+        strip.update_tide_leds(led, direction)
+        strip_lock.release()
+        strip_lock.notify_all()
     while True:
-        if not led_queue.empty():
-            new_data = led_queue.get()
-            led = new_data.led
-            direction = new_data.direction
-            strip.update_tide_leds(led, direction)
-        led_wave(strip, led, direction, led_count, Color(255, 0, 255), Color(0, 255, 255), Color(128,0,128), Color(0, 0, 255), 0.5)
+        with strip_lock:
+            if not led_queue.empty():
+                new_data = led_queue.get()
+                led = new_data.led
+                direction = new_data.direction
+                strip.update_tide_leds(led, direction)
+            led_wave(strip, led, direction, led_count, Color(255, 0, 255), Color(0, 255, 255), Color(128,0,128), Color(0, 0, 255), 0.5)
+            strip_lock.release()
+            strip_lock.notify_all()
+
+
+def ldr_controller_thread(strip, strip_lock):
+    brightness = LED_BRIGHTNESS
+    while True:
+        count = rc_time(ldr_pin)
+        new_brightness = scale(1, 500000, 1, 255, count)
+        if new_brightness != brightness:
+            with strip_lock:
+                strip.setBrightness(new_brightness)
+                brightness = new_brightness
+                strip_lock.release()
+                strip_lock.notify_all()
+
 
 
 # TODO: create config file if it doesn't exist
+GPIO.setmode(GPIO.BOARD)
+ldr_pin = 11
 config = configparser.ConfigParser()
 config.read('config.ini')
 lon = config.get('apivalues', 'lon')
 lat = config.get('apivalues', 'lat')
 
 strip = TideLightLedStrip(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL)
+strip_lock = threading.Condition()
 strip.begin()
 
 led_queue = Queue()
@@ -137,10 +161,12 @@ tide_time_collection_lock = threading.Condition()
 api = TideApi(lon, lat)
 location_data_thread = threading.Thread(target=get_location_data_thread, args=(api,))
 lighting_thread = threading.Thread(target=lighting_thread, args=(led_queue,))
-controller_thread = threading.Thread(target=strip_controller_thread, args=(strip, led_queue, LED_COUNT))
+controller_thread = threading.Thread(target=strip_controller_thread, args=(strip, strip_lock, led_queue, LED_COUNT))
+ldr_thread = threading.Thread(target=ldr_controller_thread, args=(strip, strip_lock))
 location_data_thread.start()
 lighting_thread.start()
 controller_thread.start()
+ldr_thread.start()
 
 
 
@@ -184,3 +210,23 @@ def led_wave(strip, led, direction, led_count, moving_color_top, moving_color_bo
             strip.show()
             time.sleep(speed)
 
+def scale(oldmin, oldmax, newmin, newmax, oldvalue):
+    return (((oldvalue - oldmin)*(newmax - newmin))/(oldmax - oldmin)) + newmin
+
+
+def rc_time(pin_to_circuit):
+    count = 0
+
+    # Output on the pin for
+    GPIO.setup(pin_to_circuit, GPIO.OUT)
+    GPIO.output(pin_to_circuit, GPIO.LOW)
+    time.sleep(0.1)
+
+    # Change the pin back to input
+    GPIO.setup(pin_to_circuit, GPIO.IN)
+
+    # Count until the pin goes high
+    while (GPIO.input(pin_to_circuit) == GPIO.LOW):
+        count += 1
+
+    return count
