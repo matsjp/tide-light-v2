@@ -130,7 +130,7 @@ def ldr_controller_thread(strip, strip_lock):
     brightness = LED_BRIGHTNESS
     while True:
         count = rc_time(ldr_pin)
-        new_brightness = scale(1, 500000, 1, 255, count)
+        new_brightness = scale_and_invert(1, 500000, 1, 255, count)
         if new_brightness != brightness:
             with strip_lock:
                 strip.setBrightness(new_brightness)
@@ -210,8 +210,11 @@ def led_wave(strip, led, direction, led_count, moving_color_top, moving_color_bo
             strip.show()
             time.sleep(speed)
 
-def scale(oldmin, oldmax, newmin, newmax, oldvalue):
-    return (((oldvalue - oldmin)*(newmax - newmin))/(oldmax - oldmin)) + newmin
+def scale_and_invert(oldmin, oldmax, newmin, newmax, oldvalue):
+    non_inverted = (((oldvalue - oldmin)*(newmax - newmin))/(oldmax - oldmin)) + newmin
+    middle = int((newmin + newmax)/2)
+    temp = middle - non_inverted
+    return middle + temp
 
 
 def rc_time(pin_to_circuit):
