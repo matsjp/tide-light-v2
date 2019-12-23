@@ -110,20 +110,20 @@ def strip_controller_thread(strip, strip_lock, led_queue, led_count):
     first_time_data = led_queue.get()
     led = first_time_data.led
     direction = first_time_data.direction
-    with strip_lock:
-        strip.update_tide_leds(led, direction)
+    strip_lock.acquire()
+    strip.update_tide_leds(led, direction)
+    strip_lock.release()
+    strip_lock.notify_all()
+    while True:
+        strip_lock.acquire()
+        if not led_queue.empty():
+            new_data = led_queue.get()
+            led = new_data.led
+            direction = new_data.direction
+            strip.update_tide_leds(led, direction)
+        led_wave(strip, led, direction, led_count, Color(255, 0, 255), Color(0, 255, 255), Color(128,0,128), Color(0, 0, 255), 0.5)
         strip_lock.release()
         strip_lock.notify_all()
-    while True:
-        with strip_lock:
-            if not led_queue.empty():
-                new_data = led_queue.get()
-                led = new_data.led
-                direction = new_data.direction
-                strip.update_tide_leds(led, direction)
-            led_wave(strip, led, direction, led_count, Color(255, 0, 255), Color(0, 255, 255), Color(128,0,128), Color(0, 0, 255), 0.5)
-            strip_lock.release()
-            strip_lock.notify_all()
 
 
 def ldr_controller_thread(strip, strip_lock):
@@ -132,11 +132,11 @@ def ldr_controller_thread(strip, strip_lock):
         count = rc_time(ldr_pin)
         new_brightness = scale_and_invert(1, 500000, 1, 255, count)
         if new_brightness != brightness:
-            with strip_lock:
-                strip.setBrightness(new_brightness)
-                brightness = new_brightness
-                strip_lock.release()
-                strip_lock.notify_all()
+            strip_lock.acquire()
+            strip.setBrightness(new_brightness)
+            brightness = new_brightness
+            strip_lock.release()
+            strip_lock.notify_all()
 
 
 
