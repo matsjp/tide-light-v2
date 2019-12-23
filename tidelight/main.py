@@ -24,6 +24,32 @@ LED_BRIGHTNESS = 50  # Set to 0 for darkest and 255 for brightest
 LED_INVERT = False  # True to invert the signal (when using NPN transistor level shift)
 LED_CHANNEL = 0  # set to '1' for GPIOs 13, 19, 41, 45 or 53
 
+def scale_and_invert(oldmin, oldmax, newmin, newmax, oldvalue):
+    non_inverted = (((oldvalue - oldmin)*(newmax - newmin))/(oldmax - oldmin)) + newmin
+    middle = int((newmin + newmax)/2)
+    temp = middle - non_inverted
+    return middle + temp
+
+
+def rc_time(pin_to_circuit):
+    count = 0
+
+    # Output on the pin for
+    GPIO.setup(pin_to_circuit, GPIO.OUT)
+    GPIO.output(pin_to_circuit, GPIO.LOW)
+    time.sleep(0.1)
+
+    # Change the pin back to input
+    GPIO.setup(pin_to_circuit, GPIO.IN)
+
+    # Count until the pin goes high
+    while (GPIO.input(pin_to_circuit) == GPIO.LOW):
+        count += 1
+
+    return count
+
+
+
 class LedDirection:
     def __init__(self, led, direction):
         self.led = led
@@ -110,20 +136,18 @@ def strip_controller_thread(strip, strip_lock, led_queue, led_count):
     first_time_data = led_queue.get()
     led = first_time_data.led
     direction = first_time_data.direction
-    strip_lock.acquire()
-    strip.update_tide_leds(led, direction)
-    strip_lock.release()
-    strip_lock.notify_all()
-    while True:
-        strip_lock.acquire()
-        if not led_queue.empty():
-            new_data = led_queue.get()
-            led = new_data.led
-            direction = new_data.direction
-            strip.update_tide_leds(led, direction)
-        led_wave(strip, led, direction, led_count, Color(255, 0, 255), Color(0, 255, 255), Color(128,0,128), Color(0, 0, 255), 0.5)
-        strip_lock.release()
+    with strip_lock:
+        strip.update_tide_leds(led, direction)
         strip_lock.notify_all()
+    while True:
+        with strip_lock:
+            if not led_queue.empty():
+                new_data = led_queue.get()
+                led = new_data.led
+                direction = new_data.direction
+                strip.update_tide_leds(led, direction)
+            led_wave(strip, led, direction, led_count, Color(255, 0, 255), Color(0, 255, 255), Color(128,0,128), Color(0, 0, 255), 0.5)
+            strip_lock.notify_all()
 
 
 def ldr_controller_thread(strip, strip_lock):
@@ -132,11 +156,10 @@ def ldr_controller_thread(strip, strip_lock):
         count = rc_time(ldr_pin)
         new_brightness = scale_and_invert(1, 500000, 1, 255, count)
         if new_brightness != brightness:
-            strip_lock.acquire()
-            strip.setBrightness(new_brightness)
-            brightness = new_brightness
-            strip_lock.release()
-            strip_lock.notify_all()
+            with strip_lock:
+                strip.setBrightness(new_brightness)
+                brightness = new_brightness
+                strip_lock.notify_all()
 
 
 
@@ -209,27 +232,3 @@ def led_wave(strip, led, direction, led_count, moving_color_top, moving_color_bo
                 strip.setPixelColor(i, moving_color_top)
             strip.show()
             time.sleep(speed)
-
-def scale_and_invert(oldmin, oldmax, newmin, newmax, oldvalue):
-    non_inverted = (((oldvalue - oldmin)*(newmax - newmin))/(oldmax - oldmin)) + newmin
-    middle = int((newmin + newmax)/2)
-    temp = middle - non_inverted
-    return middle + temp
-
-
-def rc_time(pin_to_circuit):
-    count = 0
-
-    # Output on the pin for
-    GPIO.setup(pin_to_circuit, GPIO.OUT)
-    GPIO.output(pin_to_circuit, GPIO.LOW)
-    time.sleep(0.1)
-
-    # Change the pin back to input
-    GPIO.setup(pin_to_circuit, GPIO.IN)
-
-    # Count until the pin goes high
-    while (GPIO.input(pin_to_circuit) == GPIO.LOW):
-        count += 1
-
-    return count
