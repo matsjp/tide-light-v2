@@ -146,7 +146,7 @@ def strip_controller_thread(strip, strip_lock, led_queue, led_count):
                 led = new_data.led
                 direction = new_data.direction
                 strip.update_tide_leds(led, direction)
-            led_wave(strip, led, direction, led_count, Color(255, 0, 255), Color(0, 255, 255), Color(128,0,128), Color(0, 0, 255), 0.5)
+            led_wave(strip, led, direction, led_count, Color(0, 0, 255), Color(128, 0, 128), Color(128,0,128), Color(0, 0, 255), 0.5)
             strip_lock.notify_all()
 
 
@@ -154,7 +154,7 @@ def ldr_controller_thread(strip, strip_lock):
     brightness = LED_BRIGHTNESS
     while True:
         count = rc_time(ldr_pin)
-        new_brightness = scale_and_invert(1, 500000, 1, 255, count)
+        new_brightness = scale_and_invert(1, 500000, 1, 100, count)
         if new_brightness != brightness:
             with strip_lock:
                 strip.setBrightness(new_brightness)
@@ -198,16 +198,13 @@ def led_wave(strip, led, direction, led_count, moving_color_top, moving_color_bo
     # If going to tide
     if direction:
         for i in range(1, led_count - 1):
-            if i == 1:
-                if led < led_count - 2:
-                    strip.setPixelColor(led_count - 2, still_color_top)
-                else:
-                    strip.setPixelColor(led_count - 2, still_color_bottom)
+            previous_led = i % (led_count - 2)
+            if previous_led == 0:
+                previous_led = led_count - 2
+            if previous_led <= led:
+                strip.setPixelColor(previous_led, still_color_bottom)
             else:
-                if i - 1 <= led:
-                    strip.setPixelColor(i - 1, still_color_bottom)
-                else:
-                    strip.setPixelColor(i - 1, still_color_top)
+                strip.setPixelColor(previous_led, still_color_top)
             if i <= led:
                 strip.setPixelColor(i, moving_color_bottom)
             else:
@@ -216,16 +213,13 @@ def led_wave(strip, led, direction, led_count, moving_color_top, moving_color_bo
             time.sleep(speed)
     else:
         for i in range(led_count - 2, 0, -1):
-            if i == led_count - 2:
-                if led_count - 2 != led:
-                    strip.setPixelColor(1, still_color_bottom)
-                else:
-                    strip.setPixelColor(1, still_color_top)
+            previous_led = i % (led_count - 2)
+            if previous_led == 0:
+                previous_led = led_count - 2
+            if previous_led <= led_count - 1 - led:
+                strip.setPixelColor(previous_led, still_color_bottom)
             else:
-                if i + 1 <= led_count - 1 - led:
-                    strip.setPixelColor(i + 1, still_color_bottom)
-                else:
-                    strip.setPixelColor(i + 1, still_color_top)
+                strip.setPixelColor(previous_led, still_color_top)
             if i <= led_count - 1 - led:
                 strip.setPixelColor(i, moving_color_bottom)
             else:
