@@ -25,7 +25,11 @@ LED_INVERT = False  # True to invert the signal (when using NPN transistor level
 LED_CHANNEL = 0  # set to '1' for GPIOs 13, 19, 41, 45 or 53
 
 def scale_and_invert(oldmin, oldmax, newmin, newmax, oldvalue):
-    non_inverted = (((oldvalue - oldmin)*(newmax - newmin))/(oldmax - oldmin)) + newmin
+    if oldvalue > oldmax:
+        oldvalue = oldmax
+    if oldvalue < oldmin:
+        oldvalue = oldmin
+    non_inverted = int((((oldvalue - oldmin)*(newmax - newmin))/(oldmax - oldmin)) + newmin)
     middle = int((newmin + newmax)/2)
     temp = middle - non_inverted
     return middle + temp
@@ -198,7 +202,7 @@ def led_wave(strip, led, direction, led_count, moving_color_top, moving_color_bo
     # If going to tide
     if direction:
         for i in range(1, led_count - 1):
-            previous_led = i % (led_count - 2)
+            previous_led = (i - 1) % (led_count - 2)
             if previous_led == 0:
                 previous_led = led_count - 2
             if previous_led <= led:
@@ -213,7 +217,7 @@ def led_wave(strip, led, direction, led_count, moving_color_top, moving_color_bo
             time.sleep(speed)
     else:
         for i in range(led_count - 2, 0, -1):
-            previous_led = i % (led_count - 2)
+            previous_led = (i + 1) % (led_count - 2)
             if previous_led == 0:
                 previous_led = led_count - 2
             if previous_led <= led_count - 1 - led:
