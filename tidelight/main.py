@@ -202,7 +202,7 @@ def led_wave(strip, led, direction, led_count, moving_color_top, moving_color_bo
     # If going to tide
     if direction:
         for i in range(1, led_count - 1):
-            previous_led = (i - 1) % (led_count - 2)
+            previous_led = (i - 2) % (led_count - 2)
             if previous_led == 0:
                 previous_led = led_count - 2
             if previous_led <= led:
@@ -217,7 +217,7 @@ def led_wave(strip, led, direction, led_count, moving_color_top, moving_color_bo
             time.sleep(speed)
     else:
         for i in range(led_count - 2, 0, -1):
-            previous_led = (i + 1) % (led_count - 2)
+            previous_led = (i + 2) % (led_count - 2)
             if previous_led == 0:
                 previous_led = led_count - 2
             if previous_led <= led_count - 1 - led:
