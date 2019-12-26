@@ -209,20 +209,14 @@ def led_wave(strip, led, direction, led_count, moving_colors_top, moving_colors_
         color_queue.put((moving_colors_top[i], moving_colors_bottom[i]))
     if direction:
         for i in range(1, led_count - 1):
-            for j in range(0, color_queue.qsize()):
-                switch_led = (i - j) % (led_count - 2)
-                if switch_led == 0:
-                    switch_led = led_count - 2
-                color_set = color_queue.get()
-                color_queue.put(color_set)
-                if switch_led <= led:
-                    strip.setPixelColor(i - j, color_set[1])
-                else:
-                    strip.setPixelColor(i - j, color_set[0])
+            color_set = color_queue.get()
+            color_queue.put(color_set)
+            if i <= led:
+                strip.setPixelColor(i, color_set[1])
+            else:
+                strip.setPixelColor(i, color_set[0])
 
-
-
-            previous_led = (i - 2) % (led_count - 2)
+            previous_led = (i - color_queue.qsize()) % (led_count - 2)
             if previous_led == 0:
                 previous_led = led_count - 2
             if previous_led <= led:
