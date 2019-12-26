@@ -60,39 +60,6 @@ class LedDirection:
         self.led = led
         self.direction = direction
 
-def clamp(v):
-    if v < 0:
-        return 0
-    if v > 255:
-        return 255
-    return int(v + 0.5)
-
-class RGBRotate(object):
-    def __init__(self):
-        self.matrix = [[1,0,0],[0,1,0],[0,0,1]]
-
-    def set_hue_rotation(self, degrees):
-        cosA = cos(radians(degrees))
-        sinA = sin(radians(degrees))
-        self.matrix[0][0] = cosA + (1.0 - cosA) / 3.0
-        self.matrix[0][1] = 1./3. * (1.0 - cosA) - sqrt(1./3.) * sinA
-        self.matrix[0][2] = 1./3. * (1.0 - cosA) + sqrt(1./3.) * sinA
-        self.matrix[1][0] = 1./3. * (1.0 - cosA) + sqrt(1./3.) * sinA
-        self.matrix[1][1] = cosA + 1./3.*(1.0 - cosA)
-        self.matrix[1][2] = 1./3. * (1.0 - cosA) - sqrt(1./3.) * sinA
-        self.matrix[2][0] = 1./3. * (1.0 - cosA) - sqrt(1./3.) * sinA
-        self.matrix[2][1] = 1./3. * (1.0 - cosA) + sqrt(1./3.) * sinA
-        self.matrix[2][2] = cosA + 1./3. * (1.0 - cosA)
-
-    def apply(self, r, g, b):
-        rx = r * self.matrix[0][0] + g * self.matrix[0][1] + b * self.matrix[0][2]
-        gx = r * self.matrix[1][0] + g * self.matrix[1][1] + b * self.matrix[1][2]
-        bx = r * self.matrix[2][0] + g * self.matrix[2][1] + b * self.matrix[2][2]
-        return clamp(rx), clamp(gx), clamp(bx)
-
-def extract_color(color):
-    rgb_bytes = color.to_bytes(3, byteorder="big")
-    return rgb_bytes[0], rgb_bytes[1], rgb_bytes[2]
 
 
 def get_location_data_thread(api: TideApi):
@@ -185,6 +152,8 @@ def strip_controller_thread(strip, strip_lock, led_queue, led_count):
                 led = new_data.led
                 direction = new_data.direction
                 strip.update_tide_leds(led, direction)
+            moving_colors_top = [Color(0, 0, 255), Color(0, 75, 255), Color(0, 150, 255)]
+            moving_colors_bottom = [Color(128, 0, 128), Color(128, 0, 64), Color(128, 0, 0)]
             led_wave(strip, led, direction, led_count, Color(0, 0, 255), Color(128, 0, 128), Color(128,0,128), Color(0, 0, 255), 0.5)
             strip_lock.notify_all()
 
@@ -233,7 +202,7 @@ ldr_thread.start()
 
 
 
-def led_wave(strip, led, direction, led_count, moving_color_top, moving_color_bottom, still_color_top, still_color_bottom, speed):
+def led_wave(strip, led, direction, led_count, moving_colors_top, moving_colors_bottom, still_color_top, still_color_bottom, speed):
     # If going to tide
     if direction:
         for i in range(1, led_count - 1):
@@ -252,21 +221,15 @@ def led_wave(strip, led, direction, led_count, moving_color_top, moving_color_bo
             time.sleep(speed)
     else:
         for i in range(led_count - 2, 0, -1):
-            for j in range(0, 3):
+            for j in range(0, len(moving_colors_top)):
                 switch_led = (i + j) % (led_count - 2)
                 if switch_led == 0:
                     switch_led = led_count - 2
                 if switch_led <= led_count - 1 - led:
-                    r, g, b = extract_color(moving_color_bottom)
+                    strip.setColor(i + j, moving_colors_bottom[j])
                 else:
-                    r, g, b = extract_color(moving_color_top)
-                rotate = RGBRotate()
-                rotate.set_hue_rotation(switch_led * 5)
-                rx, gx, bx = rotate.apply(r, g, b)
-                color = Color(rx, gx, bx)
-                strip.setPixelColor(i, color)
-
-            previous_led = (i + 3) % (led_count - 2)
+                    strip.setColor(i + j, moving_colors_top[j])
+            previous_led = (i + len(moving_colors_top)) % (led_count - 2)
             if previous_led == 0:
                 previous_led = led_count - 2
             if previous_led <= led_count - 1 - led:
