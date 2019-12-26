@@ -154,7 +154,7 @@ def strip_controller_thread(strip, strip_lock, led_queue, led_count):
                 strip.update_tide_leds(led, direction)
             moving_colors_top = [Color(0, 0, 255), Color(0, 75, 255), Color(0, 150, 255)]
             moving_colors_bottom = [Color(128, 0, 128), Color(128, 0, 64), Color(128, 0, 0)]
-            led_wave(strip, led, direction, led_count, Color(0, 0, 255), Color(128, 0, 128), Color(128,0,128), Color(0, 0, 255), 0.5)
+            led_wave(strip, led, direction, led_count, moving_colors_top, moving_colors_bottom, Color(128,0,128), Color(0, 0, 255), 0.5)
             strip_lock.notify_all()
 
 
@@ -226,9 +226,9 @@ def led_wave(strip, led, direction, led_count, moving_colors_top, moving_colors_
                 if switch_led == 0:
                     switch_led = led_count - 2
                 if switch_led <= led_count - 1 - led:
-                    strip.setColor(i + j, moving_colors_bottom[j])
+                    strip.setPixelColor(i + j, moving_colors_bottom[j])
                 else:
-                    strip.setColor(i + j, moving_colors_top[j])
+                    strip.setPixelColor(i + j, moving_colors_top[j])
             previous_led = (i + len(moving_colors_top)) % (led_count - 2)
             if previous_led == 0:
                 previous_led = led_count - 2
