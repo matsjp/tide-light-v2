@@ -4,7 +4,8 @@ import RPi.GPIO as GPIO
 
 sys.path.append('../')
 import configparser
-from kartverkettideapi.apiwrapper.TideApi import TideApi
+from kartverket_tide_api import TideApi
+from kartverket_tide_api.parsers import LocationDataParser
 from tidelight import TideTimeCollection3
 from tidelight.util import *
 import requests
@@ -15,14 +16,7 @@ from datetime import datetime
 from TideLightLedStrip import TideLightLedStrip
 from queue import Queue
 from rpi_ws281x import *
-
-LED_COUNT = 60
-LED_PIN = 18
-LED_FREQ_HZ = 800000  # LED signal frequency in hertz (usually 800khz)
-LED_DMA = 10  # DMA channel to use for generating signal (try 10)
-LED_BRIGHTNESS = 50  # Set to 0 for darkest and 255 for brightest
-LED_INVERT = False  # True to invert the signal (when using NPN transistor level shift)
-LED_CHANNEL = 0  # set to '1' for GPIOs 13, 19, 41, 45 or 53
+import ast
 
 def scale_and_invert(oldmin, oldmax, newmin, newmax, oldvalue):
     if oldvalue > oldmax:
@@ -76,9 +70,22 @@ def get_location_data_thread(api: TideApi):
             else:
                 try:
                     print("sending request")
-                    response = api.get_location_data(get_next_time_from(), get_next_time_to())
+                    response = api.get_location_data(lon, lat, get_next_time_from(), get_next_time_to(), 'TAB')
+                    
                     print(response)
-                    coll = get_TideTimeCollection_from_xml_string(response)
+                    #TODO handle parsing exceptions
+                    parser = LocationDataParser(response)
+                    waterlevels = parser.parse_response()['data']
+                    coll = []
+                    for waterlevel in waterlevels:
+                        #TODO what to do if tide is None
+                        tide = waterlevel.tide
+                        timestring = waterlevel.time
+                        timestring = timestring[:len(timestring) - 3] + timestring[len(timestring) - 2 : ]
+                        timestamp = datetime.strptime(timestring, "%Y-%m-%dT%H:%M:%S%z").timestamp()
+                        #TODO figure out difference between time and timestamp. Why didn't past myself properly document that
+                        coll.append(TideTime(tide=tide, timestamp=timestamp, time=timestring))
+                        
                     now = datetime.now().timestamp()
 
                     tide_time_collection.insert_tide_times(coll, now)
@@ -169,11 +176,21 @@ def ldr_controller_thread(strip, strip_lock):
 
 # TODO: create config file if it doesn't exist
 GPIO.setmode(GPIO.BOARD)
-ldr_pin = 11
 config = configparser.ConfigParser()
 config.read('config.ini')
 lon = config.get('apivalues', 'lon')
 lat = config.get('apivalues', 'lat')
+
+LED_COUNT = ast.literal_eval(config.get('ledstrip', 'LED_COUNT'))
+LED_PIN = ast.literal_eval(config.get('ledstrip', 'LED_PIN'))
+LED_FREQ_HZ = ast.literal_eval(config.get('ledstrip', 'LED_FREQ_HZ'))
+LED_DMA = ast.literal_eval(config.get('ledstrip', 'LED_DMA'))
+LED_BRIGHTNESS = ast.literal_eval(config.get('ledstrip', 'LED_BRIGHTNESS'))
+LED_INVERT = ast.literal_eval(config.get('ledstrip', 'LED_INVERT'))
+LED_CHANNEL = ast.literal_eval(config.get('ledstrip', 'LED_CHANNEL'))
+
+ldr_pin = ast.literal_eval(config.get('ldr', 'ldr_pin'))
+
 
 strip = TideLightLedStrip(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL)
 strip_lock = threading.Condition()
@@ -185,7 +202,7 @@ led_queue = Queue()
 tide_time_collection = TideTimeCollection3.TideTimeCollection(LED_COUNT)
 tide_time_collection_lock = threading.Condition()
 
-api = TideApi(lon, lat)
+api = TideApi()
 location_data_thread = threading.Thread(target=get_location_data_thread, args=(api,))
 lighting_thread = threading.Thread(target=lighting_thread, args=(led_queue,))
 controller_thread = threading.Thread(target=strip_controller_thread, args=(strip, strip_lock, led_queue, LED_COUNT))
