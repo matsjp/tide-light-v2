@@ -62,13 +62,13 @@ def get_location_data_thread(api: TideApi):
     if type(api) is not TideApi:
         raise ValueError("Paramater api must be of type {}, not of type {}".format(TideApi, type(api)))
     while True:
+        print('Before aqcuiring')
         with tide_time_collection_lock:
             print("Location aqcuire")
             if datetime.now().timestamp() < sleep_until:
-                tide_time_collection_lock.release()
                 tide_time_collection_lock.notify_all()
                 print("Location release")
-                pause.until(sleep_until)
+                next_run = sleep_until
             else:
                 try:
                     print("sending request")
@@ -93,9 +93,8 @@ def get_location_data_thread(api: TideApi):
                     tide_time_collection.insert_tide_times(coll, now)
 
                     tide_time_collection_lock.notify_all()
-                    tide_time_collection_lock.release()
                     print("Location release")
-                    pause.until(get_next_api_run())
+                    next_run = get_next_api_run()
                 # TODO: Connection error excaption
                 except requests.Timeout:
                     tide_time_collection_lock.notify_all()
@@ -106,6 +105,7 @@ def get_location_data_thread(api: TideApi):
                     continue
                 except:
                     print("Error occured: ", sys.exc_info()[0])
+        pause.until(next_run)
 
 
 def lighting_thread(led_queue):
@@ -183,7 +183,7 @@ regex_color_list = '^\[(\[([0-9]|[1-8][0-9]|9[0-9]|1[0-9]'\
 '9]{2}|2[0-4][0-9]|25[0-5])\],)*\[([0-9]|[1-8][0-9]|9[0-'\
 '9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]),([0-9]|[1-8][0-9]|9[0'\
 '-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]),([0-9]|[1-8][0-9]|9['\
-'0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\]\]$'
+'0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\]\]$|^\[\]$'
 
 #Regex that is used to validate a single color
 #Format is [123,255,12]
@@ -287,8 +287,18 @@ else:
     for color in ntlimc_list:
         no_tide_level_indicator_moving_colors.append(Color(color[2], color[1], color[0]))
     
-    
-    
+
+moving_speed = ast.literal_eval(config.get('color', 'moving_speed'))
+moving_pattern = config.get('color', 'moving_pattern')
+if moving_pattern not in ['no', 'wave', 'regular']:
+    print('moving_pattern must be no, wave or regular')
+    exit()
+
+if (moving_pattern in ['wave', 'regular'] and
+    (len(tide_level_indicator_moving_colors) == 0
+     or len(no_tide_level_indicator_moving_colors == 0))):
+    print('For moving patterns you need colors. They cannot be []')
+    exit()
 
 
 strip = TideLightLedStrip(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL)
