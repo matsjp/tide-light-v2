@@ -57,7 +57,7 @@ class LedDirection:
 
 
 def get_location_data_thread(api: TideApi):
-    sleep_until = 0
+    next_run = 0
 
     if type(api) is not TideApi:
         raise ValueError("Paramater api must be of type {}, not of type {}".format(TideApi, type(api)))
@@ -65,10 +65,10 @@ def get_location_data_thread(api: TideApi):
         print('Before aqcuiring')
         with tide_time_collection_lock:
             print("Location aqcuire")
-            if datetime.now().timestamp() < sleep_until:
+            if datetime.now().timestamp() < next_run:
                 tide_time_collection_lock.notify_all()
                 print("Location release")
-                next_run = sleep_until
+                next_run = get_time_in_30s()
             else:
                 try:
                     print("sending request")
@@ -95,16 +95,24 @@ def get_location_data_thread(api: TideApi):
                     tide_time_collection_lock.notify_all()
                     print("Location release")
                     next_run = get_next_api_run()
-                # TODO: Connection error excaption
-                except requests.Timeout:
+                except requests.Timeout as e:
                     tide_time_collection_lock.notify_all()
-                    tide_time_collection_lock.release()
-                    print("Connection timeout")
+                    print(e + "     |Connection timeout")
                     print("Location release")
-                    time.sleep(30)
+                    next_run = get_time_in_30s()
+                    continue
+                except requests.ConnectionError as e:
+                    print(e + "     |Connection error")
+                    next_run = get_time_in_30s()
+                    continue
+                except requests.TooManyRedirects as e:
+                    print(e + "     |TooManyRedirects")
+                    next_run = get_time_in_30s()
                     continue
                 except:
                     print("Error occured: ", sys.exc_info()[0])
+                    next_run = get_time_in_30s()
+                    continue
         pause.until(next_run)
 
 

@@ -17,6 +17,9 @@ def get_next_time_to():
 def get_next_api_run():
     return datetime.now() + timedelta(days=1)
 
+def get_time_in_30s():
+    return datetime.now() + timedelta(seconds=30)
+
 
 def get_TideTimeCollection_from_xml_string(xml_string):
     tide_times = []
