@@ -56,6 +56,52 @@ class LedDirection:
         self.direction = direction
 
 
+def led_wave(strip, led, direction, led_count, moving_colors_top, moving_colors_bottom, still_color_top, still_color_bottom, speed, strip_lock):
+    # If going to tide
+    color_queue = Queue()
+    for i in range(len(moving_colors_top)):
+        color_queue.put((moving_colors_top[i], moving_colors_bottom[i]))
+    if direction:
+        for i in range(1, led_count - 1):
+            with strip_lock:
+                color_set = color_queue.get()
+                color_queue.put(color_set)
+                if i <= led:
+                    strip.setPixelColor(i, color_set[1])
+                else:
+                    strip.setPixelColor(i, color_set[0])
+
+                previous_led = (i - color_queue.qsize()) % (led_count - 2)
+                if previous_led == 0:
+                    previous_led = led_count - 2
+                if previous_led <= led:
+                    strip.setPixelColor(previous_led, still_color_bottom)
+                else:
+                    strip.setPixelColor(previous_led, still_color_top)
+                strip.show()
+                strip_lock.notify_all()
+            time.sleep(speed)
+    else:
+        for i in range(led_count - 2, 0, -1):
+            with strip_lock:
+                color_set = color_queue.get()
+                color_queue.put(color_set)
+                if i <= led_count - 1 - led:
+                    strip.setPixelColor(i, color_set[1])
+                else:
+                    strip.setPixelColor(i, color_set[0])
+
+                previous_led = (i + color_queue.qsize()) % (led_count - 2)
+                if previous_led == 0:
+                    previous_led = led_count - 2
+                if previous_led <= led_count - 1 - led:
+                    strip.setPixelColor(previous_led, still_color_bottom)
+                else:
+                    strip.setPixelColor(previous_led, still_color_top)
+                strip.show()
+                strip_lock.notify_all()
+            time.sleep(speed)
+
 def get_location_data_thread(api: TideApi):
     next_run = 0
 
@@ -114,6 +160,28 @@ def get_location_data_thread(api: TideApi):
                     next_run = get_time_in_30s()
                     continue
         pause.until(next_run)
+
+def offline_tide_data():
+    #TODO: do something if none of the offline data is current date
+    with tide_time_collection_lock:
+        #TODO: what if theres no such file
+        with open('offline.xml', 'r') as xmlfile:
+                xml = xmlfile.read()
+        parser = LocationDataParser(xml)
+        waterlevels = parser.parse_response()['data']
+        coll = []
+        for waterlevel in waterlevels:
+            #TODO what to do if tide is None
+            tide = waterlevel.tide
+            timestring = waterlevel.time
+            timestring = timestring[:len(timestring) - 3] + timestring[len(timestring) - 2 : ]
+            timestamp = datetime.strptime(timestring, "%Y-%m-%dT%H:%M:%S%z").timestamp()
+            #TODO figure out difference between time and timestamp. Why didn't past myself properly document that
+            coll.append(TideTime(tide=tide, timestamp=timestamp, time=timestring))
+                        
+        now = datetime.now().timestamp()
+        tide_time_collection.insert_tide_times(coll, now)
+        tide_time_collection_lock.notify_all()
 
 
 def lighting_thread(led_queue):
@@ -178,6 +246,7 @@ def strip_controller_thread(strip, strip_lock, led_queue, led_count, moving_spee
         elif moving_pattern == 'regular':
             pass
         else:
+            #TODO: Look closer at this           
             time.sleep(1)
 
 
@@ -228,6 +297,9 @@ LED_CHANNEL = ast.literal_eval(config.get('ledstrip', 'LED_CHANNEL'))
 
 ldr_pin = ast.literal_eval(config.get('ldr', 'ldr_pin'))
 ldr_active = ast.literal_eval(config.get('ldr', 'ldr_active'))
+
+
+offline_mode = ast.literal_eval(config.get('offline', 'offline_mode'))
 
 #TODO: make excaptions for all these possible errors
 color_format = config.get('color', 'color_format')
@@ -334,8 +406,11 @@ location_data_thread = threading.Thread(target=get_location_data_thread, args=(a
 lighting_thread = threading.Thread(target=lighting_thread, args=(led_queue,))
 controller_thread = threading.Thread(target=strip_controller_thread, args=(strip, strip_lock, led_queue, LED_COUNT, moving_speed, moving_pattern))
 ldr_thread = threading.Thread(target=ldr_controller_thread, args=(strip, strip_lock))
-print('starting location data thread')
-location_data_thread.start()
+if offline_mode:
+    offline_tide_data()
+else:
+    print('starting location data thread')
+    location_data_thread.start()
 print('starting lighting thread')
 lighting_thread.start()
 print('starting controller thread')
@@ -345,53 +420,6 @@ if ldr_active:
     ldr_thread.start()
 
 
-
-
-def led_wave(strip, led, direction, led_count, moving_colors_top, moving_colors_bottom, still_color_top, still_color_bottom, speed, strip_lock):
-    # If going to tide
-    color_queue = Queue()
-    for i in range(len(moving_colors_top)):
-        color_queue.put((moving_colors_top[i], moving_colors_bottom[i]))
-    if direction:
-        for i in range(1, led_count - 1):
-            with strip_lock:
-                color_set = color_queue.get()
-                color_queue.put(color_set)
-                if i <= led:
-                    strip.setPixelColor(i, color_set[1])
-                else:
-                    strip.setPixelColor(i, color_set[0])
-
-                previous_led = (i - color_queue.qsize()) % (led_count - 2)
-                if previous_led == 0:
-                    previous_led = led_count - 2
-                if previous_led <= led:
-                    strip.setPixelColor(previous_led, still_color_bottom)
-                else:
-                    strip.setPixelColor(previous_led, still_color_top)
-                strip.show()
-                strip_lock.notify_all()
-            time.sleep(speed)
-    else:
-        for i in range(led_count - 2, 0, -1):
-            with strip_lock:
-                color_set = color_queue.get()
-                color_queue.put(color_set)
-                if i <= led_count - 1 - led:
-                    strip.setPixelColor(i, color_set[1])
-                else:
-                    strip.setPixelColor(i, color_set[0])
-
-                previous_led = (i + color_queue.qsize()) % (led_count - 2)
-                if previous_led == 0:
-                    previous_led = led_count - 2
-                if previous_led <= led_count - 1 - led:
-                    strip.setPixelColor(previous_led, still_color_bottom)
-                else:
-                    strip.setPixelColor(previous_led, still_color_top)
-                strip.show()
-                strip_lock.notify_all()
-            time.sleep(speed)
 
 
 def led_regular(strip, led, direction, led_count, moving_color_top, moving_color_bottom, still_color_top, still_color_bottom, speed):
