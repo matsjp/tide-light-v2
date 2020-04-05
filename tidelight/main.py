@@ -19,6 +19,7 @@ from rpi_ws281x import *
 import ast
 import re
 import json
+from bluetooth.peripheral import *
 
 def scale_and_invert(oldmin, oldmax, newmin, newmax, oldvalue):
     if oldvalue > oldmax:
@@ -423,6 +424,7 @@ location_data_thread = threading.Thread(target=get_location_data_thread, args=(a
 lighting_thread = threading.Thread(target=lighting_thread, args=(led_queue,))
 controller_thread = threading.Thread(target=strip_controller_thread, args=(strip, strip_lock, led_queue, LED_COUNT, moving_speed, moving_pattern))
 ldr_thread = threading.Thread(target=ldr_controller_thread, args=(strip, strip_lock))
+bluetooth_thread = threading.Thread(target=bluetooth)
 if offline_mode:
     offline_tide_data()
 else:
@@ -435,6 +437,10 @@ controller_thread.start()
 if ldr_active:
     print('starting ldr thread')
     ldr_thread.start()
+bluetooth_thread.start()
+
+bleno.stopAdvertising()
+bleno.disconnect()
 
 
 

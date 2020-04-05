@@ -1,3 +1,5 @@
 pytz
 pause
 kartverket_tide_api
+wifi
+pybleno
