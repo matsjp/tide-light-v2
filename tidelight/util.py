@@ -15,10 +15,10 @@ def get_next_time_to():
     return time.strftime("%Y-%m-%dT%H:%M")
 
 def get_next_api_run():
-    return datetime.now() + timedelta(days=1)
+    return (datetime.now() + timedelta(days=1)).timestamp()
 
 def get_time_in_30s():
-    return datetime.now() + timedelta(seconds=30)
+    return (datetime.now() + timedelta(seconds=5)).timestamp()
 
 
 def get_TideTimeCollection_from_xml_string(xml_string):

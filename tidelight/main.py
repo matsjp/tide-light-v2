@@ -108,14 +108,16 @@ def get_location_data_thread(api: TideApi):
     if type(api) is not TideApi:
         raise ValueError("Paramater api must be of type {}, not of type {}".format(TideApi, type(api)))
     while True:
-        print('Before aqcuiring')
+        print('Before acquiring')
         with tide_time_collection_lock:
-            print("Location aqcuire")
+            print("Location acquire")
+            print('If statement')
             if datetime.now().timestamp() < next_run:
+                print('too early')
                 tide_time_collection_lock.notify_all()
-                print("Location release")
-                next_run = get_time_in_30s()
+                print("Location release: too early")
             else:
+                print('Going to try sending request')
                 try:
                     print("sending request")
                     response = api.get_location_data(lon, lat, get_next_time_from(), get_next_time_to(), 'TAB')
@@ -139,26 +141,34 @@ def get_location_data_thread(api: TideApi):
                     tide_time_collection.insert_tide_times(coll, now)
 
                     tide_time_collection_lock.notify_all()
-                    print("Location release")
+                    print("Location release: waiting for next data download time")
                     next_run = get_next_api_run()
-                except requests.Timeout as e:
+                except requests.exceptions.Timeout as e:
                     tide_time_collection_lock.notify_all()
-                    print(e + "     |Connection timeout")
-                    print("Location release")
+                    print(e)
+                    print('Connection timeout')
+                    print("Location release: 30s timeout")
                     next_run = get_time_in_30s()
-                    continue
-                except requests.ConnectionError as e:
-                    print(e + "     |Connection error")
+                except requests.exceptions.ConnectionError as e:
+                    print(e)
+                    print('Connection error')
+                    print('Location release: 30s connection error')
                     next_run = get_time_in_30s()
-                    continue
-                except requests.TooManyRedirects as e:
-                    print(e + "     |TooManyRedirects")
+                except requests.exceptions.TooManyRedirects as e:
+                    print(e)
+                    print('TooManyRedirects')
+                    print('Location release: 30s TooManyRedirects')
                     next_run = get_time_in_30s()
-                    continue
+                except requests.exceptions.RequestException as e:
+                    print(e)
+                    print('TooManyRedirects')
+                    print('Location release: 30s RequestException')
+                    next_run = get_time_in_30s()
                 except:
                     print("Error occured: ", sys.exc_info()[0])
+                    print('Location release: 30s unknown error')
                     next_run = get_time_in_30s()
-                    continue
+        print('Pause until next run')
         pause.until(next_run)
 
 def offline_tide_data():
