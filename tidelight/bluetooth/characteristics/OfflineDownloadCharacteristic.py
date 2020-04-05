@@ -4,7 +4,7 @@ import struct
 import sys
 import traceback
 from builtins import str
-from .Config import *
+from ..Config import *
 import traceback
 from kartverket_tide_api import TideApi
 from kartverket_tide_api.parsers import LocationDataParser

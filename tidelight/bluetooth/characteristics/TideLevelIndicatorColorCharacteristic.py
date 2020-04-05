@@ -4,16 +4,16 @@ import struct
 import sys
 import traceback
 from builtins import str
-from .Config import *
+from ..Config import *
 import traceback
 import re
 
-class NoTideLevelIndicatorMovingColorCharacteristic(Characteristic):
+class TideLevelIndicatorColorCharacteristic(Characteristic):
     CYBLE_GATT_ERR_HTS_OUT_OF_RANGE = 0x80
 
     def __init__(self, config):
         Characteristic.__init__(self, {
-            'uuid': 'ec18',
+            'uuid': 'ec14',
             'properties': ['read', 'write'],
             'value': None
           })
@@ -25,34 +25,28 @@ class NoTideLevelIndicatorMovingColorCharacteristic(Characteristic):
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
         else:
-            color = self.config.getNoTideLevelIndicatorMovingColor()
+            color = self.config.getTideLevelIndicatorColor()
             colorList = re.findall('\d+', color)
-            data = array.array('B', [0] * len(colorList))
-            for i in range(len(colorList)):
+            data = array.array('B', [0] * 3)
+            for i in range(3):
                 writeUInt8(data, int(colorList[i]), i)
             callback(Characteristic.RESULT_SUCCESS, data);
 
     def onWriteRequest(self, data, offset, withoutResponse, callback):
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG)
-        elif len(data)%3 != 0:
+        elif len(data) != 3:
             callback(Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH)
         else:
-            split = self.splitList(data)
-            colorsList = []
-            for color in split:
-                colorsList.append('[{},{},{}]'.format(*color))
-            colorsString = '['
-            for i in range(len(colorsList)):
-                colorsString += colorsList[i]
-                if i != len(colorsList) - 1:
-                    colorsString += ','
-            colorsString += ']'
-            if not self.config.validateColors(colorsString):
+            colorList = []
+            for i in range(3):
+                colorList.append(readUInt8(data, i))
+            color = '[{},{},{}]'.format(*colorList)
+            if not self.config.validateColor(color):
                 callback(self.CYBLE_GATT_ERR_HTS_OUT_OF_RANGE)
             else:
                 try:
-                    self.config.setNoTideLevelIndicatorMovingColor(colorsString)
+                    self.config.setTideLevelIndicatorColor(color)
                     callback(Characteristic.RESULT_SUCCESS)
                 except ValueError:
                     callback(self.CYBLE_GATT_ERR_HTS_OUT_OF_RANGE)
@@ -60,18 +54,6 @@ class NoTideLevelIndicatorMovingColorCharacteristic(Characteristic):
                     traceback.print_exc()
                     callback(Characteristic.RESULT_UNLIKELY_ERROR)
     
-    def splitList(self, lst):
-        split = []
-        for i in range(int(len(lst) / 3)):
-            sub = list()
-            for j in range(3):
-                sub.append(readUInt8(lst, 3*i + j))
-            split.append(sub)
-        return split
-    
-
-
-
 
 
 

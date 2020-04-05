@@ -1,6 +1,6 @@
 from pybleno import *
-from .WifiScanCharacteristic import WifiScanCharacteristic
-from .AddWifiCharacteristic import AddWifiCharacteristic
+from ..characteristics.WifiScanCharacteristic import WifiScanCharacteristic
+from ..characteristics.AddWifiCharacteristic import AddWifiCharacteristic
 
 class WifiService(BlenoPrimaryService):
     uuid = 'ec01'

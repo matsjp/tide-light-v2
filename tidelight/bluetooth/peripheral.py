@@ -1,8 +1,8 @@
 from pybleno import *
 from .Config import Config
-from .ConfigService import ConfigService
-from .WifiService import WifiService
-from .OfflineService import OfflineService
+from .services.ConfigService import ConfigService
+from .services.WifiService import WifiService
+from .services.OfflineService import OfflineService
 import threading
 import time
 

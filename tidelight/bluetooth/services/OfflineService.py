@@ -1,6 +1,6 @@
 from pybleno import *
-from .OfflineModeCharacteristic import OfflineModeCharacteristic
-from .OfflineDownloadCharacteristic import OfflineDownloadCharacteristic
+from ..characteristics.OfflineModeCharacteristic import OfflineModeCharacteristic
+from ..characteristics.OfflineDownloadCharacteristic import OfflineDownloadCharacteristic
 
 class OfflineService(BlenoPrimaryService):
     uuid = 'ec02'

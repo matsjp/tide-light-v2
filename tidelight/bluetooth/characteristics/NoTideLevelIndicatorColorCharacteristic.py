@@ -4,15 +4,16 @@ import struct
 import sys
 import traceback
 from builtins import str
-from .Config import *
+from ..Config import *
 import traceback
+import re
 
-class ColorFormatCharacteristic(Characteristic):
+class NoTideLevelIndicatorColorCharacteristic(Characteristic):
     CYBLE_GATT_ERR_HTS_OUT_OF_RANGE = 0x80
 
     def __init__(self, config):
         Characteristic.__init__(self, {
-            'uuid': 'ec11',
+            'uuid': 'ec15',
             'properties': ['read', 'write'],
             'value': None
           })
@@ -24,25 +25,28 @@ class ColorFormatCharacteristic(Characteristic):
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
         else:
-            colorFormat = self.config.getColorFormat()
-            data = array.array('B', [0] * 1)
-            formatCode = list(colorFormats.keys())[list(colorFormats.values()).index(colorFormat)]
-            writeUInt8(data, formatCode, 0)
+            color = self.config.getNoTideLevelIndicatorColor()
+            colorList = re.findall('\d+', color)
+            data = array.array('B', [0] * 3)
+            for i in range(3):
+                writeUInt8(data, int(colorList[i]), i)
             callback(Characteristic.RESULT_SUCCESS, data);
 
     def onWriteRequest(self, data, offset, withoutResponse, callback):
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG)
-        elif len(data) != 1:
+        elif len(data) != 3:
             callback(Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH)
         else:
-            formatCode = readUInt8(data, 0)
-            if not self.validateColorFormat(formatCode):
+            colorList = []
+            for i in range(3):
+                colorList.append(readUInt8(data, i))
+            color = '[{},{},{}]'.format(*colorList)
+            if not self.config.validateColor(color):
                 callback(self.CYBLE_GATT_ERR_HTS_OUT_OF_RANGE)
             else:
-                colorFormat = colorFormats[formatCode]
                 try:
-                    self.config.setColorFormat(colorFormat)
+                    self.config.setNoTideLevelIndicatorColor(color)
                     callback(Characteristic.RESULT_SUCCESS)
                 except ValueError:
                     callback(self.CYBLE_GATT_ERR_HTS_OUT_OF_RANGE)
@@ -50,6 +54,8 @@ class ColorFormatCharacteristic(Characteristic):
                     traceback.print_exc()
                     callback(Characteristic.RESULT_UNLIKELY_ERROR)
     
-    def validateColorFormat(self, formatCode):
-        return formatCode in colorFormats.keys()
+
+
+
+
 

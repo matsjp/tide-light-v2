@@ -4,15 +4,14 @@ import struct
 import sys
 import traceback
 from builtins import str
-from .Config import *
+from ..Config import *
 import traceback
 
-class LatLonCharacteristic(Characteristic):
+class BrightnessCharacteristic(Characteristic):
     CYBLE_GATT_ERR_HTS_OUT_OF_RANGE = 0x80
-
     def __init__(self, config):
         Characteristic.__init__(self, {
-            'uuid': 'ec1b',
+            'uuid': 'ec0f',
             'properties': ['read', 'write'],
             'value': None
           })
@@ -24,34 +23,22 @@ class LatLonCharacteristic(Characteristic):
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
         else:
-            lat, lon = self.config.getLatLon()
-            dataString = lat + ':' + lon
-            data = array.array('B', [0] * len(dataString))
-            for i in range(len(dataString)):
-                writeUInt8(data, ord(dataString[i]), i)
+            brightness = int(self.config.getBrightness())
+            data = array.array('B', [0] * 1)
+            writeUInt8(data, brightness, 0)
             callback(Characteristic.RESULT_SUCCESS, data);
 
     def onWriteRequest(self, data, offset, withoutResponse, callback):
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG)
         else:
-            dataString = ''
-            for i in range(len(data)):
-                dataString += chr(readUInt8(data, i))
-            
+            brightness = readUInt8(data, 0)
             try:
-                index = dataString.index(':')
-                lat = ast.literal_eval(dataString[:index])
-                lon = ast.literal_eval(dataString[index + 1:])
-                self.config.setLatLon(lat, lon)
+                self.config.setBrightness(brightness)
                 callback(Characteristic.RESULT_SUCCESS)
-            except ValueError as e:
-                print(e)
-                print('ValueError')
+            except ValueError:
                 callback(self.CYBLE_GATT_ERR_HTS_OUT_OF_RANGE)
             except:
                 traceback.print_exc()
                 callback(Characteristic.RESULT_UNLIKELY_ERROR)
-
-
-
+        

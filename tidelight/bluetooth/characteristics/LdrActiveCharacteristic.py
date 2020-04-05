@@ -4,15 +4,15 @@ import struct
 import sys
 import traceback
 from builtins import str
-from .Config import *
+from ..Config import *
 import traceback
 
-class OfflineModeCharacteristic(Characteristic):
+class LdrActiveCharacteristic(Characteristic):
     CYBLE_GATT_ERR_HTS_OUT_OF_RANGE = 0x80
 
     def __init__(self, config):
         Characteristic.__init__(self, {
-            'uuid': 'ec0f',
+            'uuid': 'ec10',
             'properties': ['read', 'write'],
             'value': None
           })
@@ -20,12 +20,13 @@ class OfflineModeCharacteristic(Characteristic):
         self.config = config
           
     def onReadRequest(self, offset, callback):
+        
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
         else:
-            state = self.config.getOfflineMode()
+            state = self.config.getLdrActive()
             data = array.array('B', [0] * 1)
-            stateCode = list(offlineModeStates.keys())[list(offlineModeStates.values()).index(state)]
+            stateCode = list(ldrStates.keys())[list(ldrStates.values()).index(state)]
             writeUInt8(data, stateCode, 0)
             callback(Characteristic.RESULT_SUCCESS, data);
 
@@ -35,13 +36,13 @@ class OfflineModeCharacteristic(Characteristic):
         elif len(data) != 1:
             callback(Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH)
         else:
-            modeCode = readUInt8(data, 0)
-            if not self.validateOfflineMode(modeCode):
+            stateCode = readUInt8(data, 0)
+            if not self.validateLdrActive(stateCode):
                 callback(self.CYBLE_GATT_ERR_HTS_OUT_OF_RANGE)
             else:
-                mode = offlineModeStates[modeCode]
+                ldrActive = ldrStates[stateCode]
                 try:
-                    self.config.setOfflineMode(mode)
+                    self.config.setLdrActive(ldrActive)
                     callback(Characteristic.RESULT_SUCCESS)
                 except ValueError:
                     callback(self.CYBLE_GATT_ERR_HTS_OUT_OF_RANGE)
@@ -49,6 +50,5 @@ class OfflineModeCharacteristic(Characteristic):
                     traceback.print_exc()
                     callback(Characteristic.RESULT_UNLIKELY_ERROR)
     
-    def validateOfflineMode(self, mode):
-        return mode in offlineModeStates.keys()
-
+    def validateLdrActive(self, ldrActive):
+        return ldrActive in ldrStates.keys()

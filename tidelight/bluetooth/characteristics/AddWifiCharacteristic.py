@@ -4,7 +4,7 @@ import struct
 import sys
 import traceback
 from builtins import str
-from .Config import *
+from ..Config import *
 import traceback
 from wifi import Cell, Scheme
 import subprocess

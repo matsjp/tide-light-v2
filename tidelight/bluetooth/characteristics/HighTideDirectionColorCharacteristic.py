@@ -4,16 +4,16 @@ import struct
 import sys
 import traceback
 from builtins import str
-from .Config import *
+from ..Config import *
 import traceback
 import re
 
-class TideLevelIndicatorColorCharacteristic(Characteristic):
+class HighTideDirectionColorCharacteristic(Characteristic):
     CYBLE_GATT_ERR_HTS_OUT_OF_RANGE = 0x80
 
     def __init__(self, config):
         Characteristic.__init__(self, {
-            'uuid': 'ec14',
+            'uuid': 'ec12',
             'properties': ['read', 'write'],
             'value': None
           })
@@ -25,7 +25,7 @@ class TideLevelIndicatorColorCharacteristic(Characteristic):
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
         else:
-            color = self.config.getTideLevelIndicatorColor()
+            color = self.config.getHighTideDirectionColor()
             colorList = re.findall('\d+', color)
             data = array.array('B', [0] * 3)
             for i in range(3):
@@ -46,7 +46,7 @@ class TideLevelIndicatorColorCharacteristic(Characteristic):
                 callback(self.CYBLE_GATT_ERR_HTS_OUT_OF_RANGE)
             else:
                 try:
-                    self.config.setTideLevelIndicatorColor(color)
+                    self.config.setHighTideDirectionColor(color)
                     callback(Characteristic.RESULT_SUCCESS)
                 except ValueError:
                     callback(self.CYBLE_GATT_ERR_HTS_OUT_OF_RANGE)
@@ -54,7 +54,5 @@ class TideLevelIndicatorColorCharacteristic(Characteristic):
                     traceback.print_exc()
                     callback(Characteristic.RESULT_UNLIKELY_ERROR)
     
-
-
 
 
