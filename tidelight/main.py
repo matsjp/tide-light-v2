@@ -256,10 +256,17 @@ def ldr_controller_thread(strip, strip_lock):
         count = rc_time(ldr_pin)
         new_brightness = scale_and_invert(1, 500000, 10, 100, count)
         if new_brightness != brightness:
-            with strip_lock:
-                strip.setBrightness(new_brightness)
-                brightness = new_brightness
-                strip_lock.notify_all()
+            print('sleep')
+            time.sleep(3)
+            count = rc_time(ldr_pin)
+            temp_brightness = scale_and_invert(1, 500000, 10, 100, count)
+            if temp_brightness == new_brightness:
+                print('change')
+                with strip_lock:
+                    print(new_brightness)
+                    strip.setBrightness(new_brightness)
+                    brightness = new_brightness
+                    strip_lock.notify_all()
 
 #Regex that is used to validate the list of colors
 #Format is [[45,23,56],[1,12,255]] etc
