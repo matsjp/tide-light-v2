@@ -277,7 +277,7 @@ def ldr_controller_thread(strip, strip_lock):
         if new_brightness != brightness:
             time.sleep(1)
             count = rc_time(ldr_pin)
-            temp_brightness = brightness_round(scale_and_invert(1, 500000, 1, 100, count))
+            temp_brightness = brightness_round(scale_and_invert(1, 500000, 1, LED_BRIGHTNESS, count))
             if temp_brightness == new_brightness:
                 with strip_lock:
                     strip.setBrightness(new_brightness)
