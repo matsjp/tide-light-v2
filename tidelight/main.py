@@ -112,7 +112,6 @@ def get_location_data_thread(api: TideApi):
         print('Before acquiring')
         with tide_time_collection_lock:
             print("Location acquire")
-            print('If statement')
             if datetime.now().timestamp() < next_run:
                 print('too early')
                 tide_time_collection_lock.notify_all()
@@ -169,7 +168,7 @@ def get_location_data_thread(api: TideApi):
                     print("Error occured: ", sys.exc_info()[0])
                     print('Location release: 30s unknown error')
                     next_run = get_time_in_30s()
-        print('Pause until next run')
+        print('Location: Pause until next run')
         pause.until(next_run)
 
 def offline_tide_data():
@@ -267,14 +266,11 @@ def ldr_controller_thread(strip, strip_lock):
         count = rc_time(ldr_pin)
         new_brightness = scale_and_invert(1, 500000, 10, 100, count)
         if new_brightness != brightness:
-            print('sleep')
             time.sleep(3)
             count = rc_time(ldr_pin)
             temp_brightness = scale_and_invert(1, 500000, 10, 100, count)
             if temp_brightness == new_brightness:
-                print('change')
                 with strip_lock:
-                    print(new_brightness)
                     strip.setBrightness(new_brightness)
                     brightness = new_brightness
                     strip_lock.notify_all()
@@ -426,6 +422,7 @@ controller_thread = threading.Thread(target=strip_controller_thread, args=(strip
 ldr_thread = threading.Thread(target=ldr_controller_thread, args=(strip, strip_lock))
 bluetooth_thread = threading.Thread(target=bluetooth)
 if offline_mode:
+    print('starting offline mode thread')
     offline_tide_data()
 else:
     print('starting location data thread')
@@ -437,10 +434,8 @@ controller_thread.start()
 if ldr_active:
     print('starting ldr thread')
     ldr_thread.start()
+print('starting bluetooth thread')
 bluetooth_thread.start()
-
-bleno.stopAdvertising()
-bleno.disconnect()
 
 
 
