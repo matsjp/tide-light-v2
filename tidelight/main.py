@@ -20,6 +20,7 @@ import ast
 import re
 import json
 from bluetooth.peripheral import *
+import math
 
 def scale_and_invert(oldmin, oldmax, newmin, newmax, oldvalue):
     if oldvalue > oldmax:
@@ -30,6 +31,12 @@ def scale_and_invert(oldmin, oldmax, newmin, newmax, oldvalue):
     middle = int((newmin + newmax)/2)
     temp = middle - non_inverted
     return middle + temp
+
+def brightness_round(brightness):
+    brightness = brightness/10
+    brightness = math.ceil(brightness)
+    brightness = brightness * 10
+    return brightness
 
 
 def rc_time(pin_to_circuit):
@@ -44,7 +51,7 @@ def rc_time(pin_to_circuit):
     GPIO.setup(pin_to_circuit, GPIO.IN)
 
     # Count until the pin goes high
-    while (GPIO.input(pin_to_circuit) == GPIO.LOW):
+    while (GPIO.input(pin_to_circuit) == GPIO.LOW and count < 500000):
         count += 1
 
     return count
@@ -264,11 +271,11 @@ def ldr_controller_thread(strip, strip_lock):
     brightness = LED_BRIGHTNESS
     while True:
         count = rc_time(ldr_pin)
-        new_brightness = scale_and_invert(1, 500000, 10, 100, count)
+        new_brightness = brightness_round(scale_and_invert(1, 500000, 0, 100, count))
         if new_brightness != brightness:
             time.sleep(3)
             count = rc_time(ldr_pin)
-            temp_brightness = scale_and_invert(1, 500000, 10, 100, count)
+            temp_brightness = brightness_round(scale_and_invert(1, 500000, 0, 100, count))
             if temp_brightness == new_brightness:
                 with strip_lock:
                     strip.setBrightness(new_brightness)
