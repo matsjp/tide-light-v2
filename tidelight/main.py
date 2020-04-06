@@ -30,6 +30,8 @@ def scale_and_invert(oldmin, oldmax, newmin, newmax, oldvalue):
     non_inverted = int((((oldvalue - oldmin)*(newmax - newmin))/(oldmax - oldmin)) + newmin)
     middle = int((newmin + newmax)/2)
     temp = middle - non_inverted
+    if temp + middle < 1:
+        return 1
     return middle + temp
 
 def brightness_round(brightness):
@@ -271,11 +273,11 @@ def ldr_controller_thread(strip, strip_lock):
     brightness = LED_BRIGHTNESS
     while True:
         count = rc_time(ldr_pin)
-        new_brightness = brightness_round(scale_and_invert(1, 500000, 0, 100, count))
+        new_brightness = brightness_round(scale_and_invert(1, 500000, 1, LED_BRIGHTNESS, count))
         if new_brightness != brightness:
-            time.sleep(3)
+            time.sleep(1)
             count = rc_time(ldr_pin)
-            temp_brightness = brightness_round(scale_and_invert(1, 500000, 0, 100, count))
+            temp_brightness = brightness_round(scale_and_invert(1, 500000, 1, 100, count))
             if temp_brightness == new_brightness:
                 with strip_lock:
                     strip.setBrightness(new_brightness)
