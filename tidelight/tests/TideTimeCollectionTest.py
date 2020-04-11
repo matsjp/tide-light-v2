@@ -1,5 +1,5 @@
 from tidelight import TideTime
-from tidelight.TideTimeCollection3 import TideTimeCollection
+from tidelight.TideTimeCollection import TideTimeCollection
 
 
 def test_insert_test_all_inserted():

@@ -1,19 +1,14 @@
 from pybleno import *
 import array
-import struct
-import sys
+from tidelight.Config import *
 import traceback
-from builtins import str
-from ..Config import *
-import traceback
-import re
 
-class TideLevelIndicatorColorCharacteristic(Characteristic):
+class LdrActiveCharacteristic(Characteristic):
     CYBLE_GATT_ERR_HTS_OUT_OF_RANGE = 0x80
 
     def __init__(self, config):
         Characteristic.__init__(self, {
-            'uuid': 'ec14',
+            'uuid': 'ec10',
             'properties': ['read', 'write'],
             'value': None
           })
@@ -25,28 +20,25 @@ class TideLevelIndicatorColorCharacteristic(Characteristic):
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
         else:
-            color = self.config.getTideLevelIndicatorColor()
-            colorList = re.findall('\d+', color)
-            data = array.array('B', [0] * 3)
-            for i in range(3):
-                writeUInt8(data, int(colorList[i]), i)
+            state = self.config.getLdrActive()
+            data = array.array('B', [0] * 1)
+            stateCode = list(ldrStates.keys())[list(ldrStates.values()).index(state)]
+            writeUInt8(data, stateCode, 0)
             callback(Characteristic.RESULT_SUCCESS, data);
 
     def onWriteRequest(self, data, offset, withoutResponse, callback):
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG)
-        elif len(data) != 3:
+        elif len(data) != 1:
             callback(Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH)
         else:
-            colorList = []
-            for i in range(3):
-                colorList.append(readUInt8(data, i))
-            color = '[{},{},{}]'.format(*colorList)
-            if not self.config.validateColor(color):
+            stateCode = readUInt8(data, 0)
+            if not self.validateLdrActive(stateCode):
                 callback(self.CYBLE_GATT_ERR_HTS_OUT_OF_RANGE)
             else:
+                ldrActive = ldrStates[stateCode]
                 try:
-                    self.config.setTideLevelIndicatorColor(color)
+                    self.config.setLdrActive(ldrActive)
                     callback(Characteristic.RESULT_SUCCESS)
                 except ValueError:
                     callback(self.CYBLE_GATT_ERR_HTS_OUT_OF_RANGE)
@@ -54,7 +46,5 @@ class TideLevelIndicatorColorCharacteristic(Characteristic):
                     traceback.print_exc()
                     callback(Characteristic.RESULT_UNLIKELY_ERROR)
     
-
-
-
-
+    def validateLdrActive(self, ldrActive):
+        return ldrActive in ldrStates.keys()

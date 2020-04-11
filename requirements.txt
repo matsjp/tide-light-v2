@@ -3,3 +3,4 @@ pause
 kartverket_tide_api
 wifi
 pybleno
+rpi-ws281x

@@ -1,10 +1,8 @@
 from pybleno import *
-from .Config import Config
+from tidelight.Config import Config
 from .services.ConfigService import ConfigService
 from .services.WifiService import WifiService
 from .services.OfflineService import OfflineService
-import threading
-import time
 
 bleno = Bleno()
 config = Config()
@@ -44,9 +42,4 @@ def onAdvertisingStart(error):
             offlineService
         ])
 bleno.on('advertisingStart', onAdvertisingStart)
-
-def bluetooth():
-    bleno.start()
-    while True:
-        time.sleep(100)
 

@@ -1,7 +1,7 @@
 from pybleno import *
-from ..characteristics.OfflineModeCharacteristic import OfflineModeCharacteristic
-from ..characteristics.OfflineDownloadCharacteristic import OfflineDownloadCharacteristic
-from ..characteristics.HardwareClockSyncCharacteristic import HardwareClockSyncCharacteristic
+from tidelight.bluetooth.characteristics.offlinecharacteristics.OfflineModeCharacteristic import OfflineModeCharacteristic
+from tidelight.bluetooth.characteristics.offlinecharacteristics.OfflineDownloadCharacteristic import OfflineDownloadCharacteristic
+from tidelight.bluetooth.characteristics.offlinecharacteristics.HardwareClockSyncCharacteristic import HardwareClockSyncCharacteristic
 
 class OfflineService(BlenoPrimaryService):
     uuid = 'ec02'

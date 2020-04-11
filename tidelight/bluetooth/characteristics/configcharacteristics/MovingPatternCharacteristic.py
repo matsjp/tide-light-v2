@@ -1,18 +1,14 @@
 from pybleno import *
 import array
-import struct
-import sys
-import traceback
-from builtins import str
-from ..Config import *
+from tidelight.Config import *
 import traceback
 
-class ColorFormatCharacteristic(Characteristic):
+class MovingPatternCharacteristic(Characteristic):
     CYBLE_GATT_ERR_HTS_OUT_OF_RANGE = 0x80
 
     def __init__(self, config):
         Characteristic.__init__(self, {
-            'uuid': 'ec11',
+            'uuid': 'ec19',
             'properties': ['read', 'write'],
             'value': None
           })
@@ -24,10 +20,10 @@ class ColorFormatCharacteristic(Characteristic):
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
         else:
-            colorFormat = self.config.getColorFormat()
+            pattern = self.config.getMovingPattern()
             data = array.array('B', [0] * 1)
-            formatCode = list(colorFormats.keys())[list(colorFormats.values()).index(colorFormat)]
-            writeUInt8(data, formatCode, 0)
+            patternCode = list(movingPatterns.keys())[list(movingPatterns.values()).index(pattern)]
+            writeUInt8(data, patternCode, 0)
             callback(Characteristic.RESULT_SUCCESS, data);
 
     def onWriteRequest(self, data, offset, withoutResponse, callback):
@@ -36,13 +32,13 @@ class ColorFormatCharacteristic(Characteristic):
         elif len(data) != 1:
             callback(Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH)
         else:
-            formatCode = readUInt8(data, 0)
-            if not self.validateColorFormat(formatCode):
+            patternCode = readUInt8(data, 0)
+            if not self.validatePatternCode(patternCode):
                 callback(self.CYBLE_GATT_ERR_HTS_OUT_OF_RANGE)
             else:
-                colorFormat = colorFormats[formatCode]
+                movingPattern = movingPatterns[patternCode]
                 try:
-                    self.config.setColorFormat(colorFormat)
+                    self.config.setMovingPattern(movingPattern)
                     callback(Characteristic.RESULT_SUCCESS)
                 except ValueError:
                     callback(self.CYBLE_GATT_ERR_HTS_OUT_OF_RANGE)
@@ -50,6 +46,6 @@ class ColorFormatCharacteristic(Characteristic):
                     traceback.print_exc()
                     callback(Characteristic.RESULT_UNLIKELY_ERROR)
     
-    def validateColorFormat(self, formatCode):
-        return formatCode in colorFormats.keys()
+    def validatePatternCode(self, patternCode):
+        return patternCode in movingPatterns.keys()
 

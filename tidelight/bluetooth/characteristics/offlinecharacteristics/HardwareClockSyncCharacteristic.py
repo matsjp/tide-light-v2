@@ -1,11 +1,4 @@
 from pybleno import *
-import array
-import struct
-import sys
-import traceback
-from builtins import str
-from ..Config import *
-import traceback
 import subprocess
 
 class HardwareClockSyncCharacteristic(Characteristic):

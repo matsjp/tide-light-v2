@@ -1,19 +1,14 @@
 from pybleno import *
 import array
-import struct
-import sys
-import traceback
-from builtins import str
-from ..Config import *
 import traceback
 import re
 
-class LowTideDirectionColorCharacteristic(Characteristic):
+class TideLevelIndicatorColorCharacteristic(Characteristic):
     CYBLE_GATT_ERR_HTS_OUT_OF_RANGE = 0x80
 
     def __init__(self, config):
         Characteristic.__init__(self, {
-            'uuid': 'ec13',
+            'uuid': 'ec14',
             'properties': ['read', 'write'],
             'value': None
           })
@@ -25,7 +20,7 @@ class LowTideDirectionColorCharacteristic(Characteristic):
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
         else:
-            color = self.config.getLowTideDirectionColor()
+            color = self.config.getTideLevelIndicatorColor()
             colorList = re.findall('\d+', color)
             data = array.array('B', [0] * 3)
             for i in range(3):
@@ -46,7 +41,7 @@ class LowTideDirectionColorCharacteristic(Characteristic):
                 callback(self.CYBLE_GATT_ERR_HTS_OUT_OF_RANGE)
             else:
                 try:
-                    self.config.setLowTideDirectionColor(color)
+                    self.config.setTideLevelIndicatorColor(color)
                     callback(Characteristic.RESULT_SUCCESS)
                 except ValueError:
                     callback(self.CYBLE_GATT_ERR_HTS_OUT_OF_RANGE)
@@ -54,6 +49,7 @@ class LowTideDirectionColorCharacteristic(Characteristic):
                     traceback.print_exc()
                     callback(Characteristic.RESULT_UNLIKELY_ERROR)
     
+
 
 
 

@@ -1,6 +1,6 @@
 from pybleno import *
-from ..characteristics.WifiScanCharacteristic import WifiScanCharacteristic
-from ..characteristics.AddWifiCharacteristic import AddWifiCharacteristic
+from tidelight.bluetooth.characteristics.wificharacteristics.WifiScanCharacteristic import WifiScanCharacteristic
+from tidelight.bluetooth.characteristics.wificharacteristics.AddWifiCharacteristic import AddWifiCharacteristic
 
 class WifiService(BlenoPrimaryService):
     uuid = 'ec01'

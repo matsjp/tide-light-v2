@@ -1,10 +1,6 @@
 from pybleno import *
 import array
-import struct
-import sys
-import traceback
-from builtins import str
-from ..Config import *
+from tidelight.Config import *
 import traceback
 
 class OfflineModeCharacteristic(Characteristic):
