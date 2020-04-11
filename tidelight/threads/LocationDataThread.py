@@ -2,8 +2,6 @@ import sys
 import time
 from threading import Thread
 from datetime import datetime
-
-import pause
 import requests
 from kartverket_tide_api import TideApi
 from kartverket_tide_api.parsers import LocationDataParser

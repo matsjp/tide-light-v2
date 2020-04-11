@@ -1,8 +1,3 @@
-from tidelight import TideTime
-from datetime import datetime
-# For giving extra timestamp info during debugging
-#import pytz
-
 
 class TideTimeCollection:
 
@@ -57,18 +52,19 @@ class TideTimeCollection:
             time_difference_fraction = time_difference / self.tide_level_led_count
 
             for i in range(1, self.tide_level_led_count + 1):
-                if (i - 1) * time_difference_fraction + last_tide.timestamp <= now < i * time_difference_fraction + last_tide.timestamp:
+                if \
+                        (i - 1) * time_difference_fraction + last_tide.timestamp <= now < i * time_difference_fraction + last_tide.timestamp:
                     direction = self.get_tide_direction()
                     if i == self.tide_level_led_count:
                         self.tide_times.pop(0)
                     timestamp = i * time_difference_fraction + last_tide.timestamp
 
                     # Convert timestamp to datetime in Norwegian timezone
-                    #utc_dt = datetime.utcfromtimestamp(timestamp)
-                    #aware_utc_dt = utc_dt.replace(tzinfo=pytz.utc)
-                    #tz = pytz.timezone('Europe/Oslo')
-                    #dt = datetime.fromtimestamp(timestamp, tz)
-                    dt=""
+                    # utc_dt = datetime.utcfromtimestamp(timestamp)
+                    # aware_utc_dt = utc_dt.replace(tzinfo=pytz.utc)
+                    # tz = pytz.timezone('Europe/Oslo')
+                    # dt = datetime.fromtimestamp(timestamp, tz)
+                    dt = ""
 
                     return timestamp, i, direction, dt
         except IndexError:

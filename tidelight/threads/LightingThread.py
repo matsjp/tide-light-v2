@@ -1,7 +1,7 @@
 import time
 from threading import Thread
 from datetime import datetime
-from tidelight.LedDirection import LedDirection
+from LedDirection import LedDirection
 
 
 class LightingThread(Thread):

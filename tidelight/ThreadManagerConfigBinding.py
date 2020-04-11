@@ -1,4 +1,4 @@
-from tidelight.Config import Config
+from Config import Config
 
 
 class ThreadManagerConfigBinding(Config):

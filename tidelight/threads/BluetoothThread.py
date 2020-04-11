@@ -1,20 +1,22 @@
 import time
 from threading import Thread
-from tidelight.bluetooth.peripheral import *
+from bluetooth.peripheral import Peripheral
 
 
 class BluetoothThread(Thread):
-    def __init__(self, command_queue, reply_quene, name=None):
+    def __init__(self, command_queue, reply_quene, threadManagerConfigBinding, name=None):
         super().__init__(name=name)
+        self.threadManagerConfigBinding = threadManagerConfigBinding
         self.reply_quene = reply_quene
         self.command_queue = command_queue
         self.is_stopping = False
         self.handlers = {
             BluetoothCommand.STOP: self.stop
         }
+        self.peripheral = Peripheral(threadManagerConfigBinding)
 
     def run(self):
-        bleno.start()
+        self.peripheral.start()
         while not self.is_stopping:
             if not self.command_queue.empty():
                 command = self.command_queue.get()
@@ -23,8 +25,7 @@ class BluetoothThread(Thread):
 
     def stop(self):
         self.is_stopping = True
-        bleno.stopAdvertising()
-        bleno.disconnect()
+        self.peripheral.stop()
 
     def handle_command(self, command):
         self.handlers[command.command_type](command.data)

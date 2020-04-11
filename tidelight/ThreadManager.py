@@ -5,18 +5,20 @@ from queue import Queue
 from xml.etree.ElementTree import ParseError
 
 import RPi.GPIO as GPIO
-from tidelight.ConfigReader import *
-from tidelight.TideLightLedStrip import TideLightLedStrip
+from ConfigReader import *
+from TideLightLedStrip import TideLightLedStrip
 from kartverket_tide_api.exceptions import CannotFindElementException
 from kartverket_tide_api.parsers import LocationDataParser
-from tidelight.threads.BluetoothThread import BluetoothThread
-from tidelight.threads.LdrThread import LdrThread, LdrCommand
-from tidelight.threads.LocationDataThread import LocationDataThread, LocationCommand
-from tidelight.threads.StripControllerThread import StripControllerThread, ControllerCommand, ControllerReply
-from tidelight.threads.LightingThread import LightingThread, LightingReply, LightingCommand
+from threads.BluetoothThread import BluetoothThread
+from threads.LdrThread import LdrThread, LdrCommand
+from threads.LocationDataThread import LocationDataThread, LocationCommand
+from threads.StripControllerThread import StripControllerThread, ControllerCommand, ControllerReply
+from threads.LightingThread import LightingThread, LightingReply, LightingCommand
 
-from tidelight import TideTimeCollection
-from tidelight.util import *
+from TideTimeCollection import TideTimeCollection
+from util import *
+
+from ThreadManagerConfigBinding import ThreadManagerConfigBinding
 
 
 class ThreadManager:
@@ -56,7 +58,7 @@ class ThreadManager:
                                        LED_CHANNEL)
         self.strip_lock = threading.Condition()
         self.led_queue = Queue()
-        self.tide_time_collection = TideTimeCollection.TideTimeCollection(LED_COUNT)
+        self.tide_time_collection = TideTimeCollection(LED_COUNT)
         self.tide_time_collection_lock = threading.Condition()
 
         self.lighting_name = 'lighting'
@@ -64,6 +66,7 @@ class ThreadManager:
         self.ldr_name = 'ldr'
         self.location_name = 'location'
         self.controller_name = 'controller'
+        self.threadManagerConfigBinding = ThreadManagerConfigBinding(self)
 
     def run(self):
         GPIO.setmode(GPIO.BOARD)
@@ -83,7 +86,7 @@ class ThreadManager:
                                          name=self.lighting_name)
         ldr_thread = LdrThread(ldr_pin, LED_BRIGHTNESS, LED_BRIGHTNESS, self.strip, self.strip_lock,
                                self.ldr_command_queue, self.ldr_reply_queue, name=self.ldr_name)
-        bluetooth_thread = BluetoothThread(self.bluetooth_command_queue, self.bluetooth_reply_queue,
+        bluetooth_thread = BluetoothThread(self.bluetooth_command_queue, self.bluetooth_reply_queue, self.threadManagerConfigBinding,
                                            name=self.bluetooth_name)
 
         controller_thread = StripControllerThread(self.strip, self.strip_lock, high_tide_direction_color,

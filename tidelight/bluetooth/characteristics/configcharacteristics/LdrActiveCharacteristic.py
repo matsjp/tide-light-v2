@@ -1,6 +1,6 @@
 from pybleno import *
 import array
-from tidelight.Config import *
+from Config import *
 import traceback
 
 class LdrActiveCharacteristic(Characteristic):

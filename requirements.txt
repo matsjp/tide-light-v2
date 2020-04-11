@@ -1,5 +1,4 @@
-pytz
-pause
+requests
 kartverket_tide_api
 wifi
 pybleno
