@@ -8,8 +8,8 @@ from rpi_ws281x import Color
 class StripControllerThread(Thread):
     def __init__(self, strip, strip_lock, high_tide_direction_color, low_tide_direction_color,
                  tide_level_indicator_color,
-                 no_tide_level_indicator_color, no_tide_level_indicator_moving_colors,
-                 tide_level_indicator_moving_colors, led_queue, moving_pattern,
+                 no_tide_level_indicator_color, tide_level_indicator_moving_colors,
+                 no_tide_level_indicator_moving_colors, led_queue, moving_pattern,
                  led_count, moving_speed, command_queue, reply_quene, name=None):
         super().__init__(name=name)
         self.reply_quene = reply_quene
@@ -38,33 +38,33 @@ class StripControllerThread(Thread):
             ControllerCommand.NEWTIDELEVELINDICATORMOVINGCOLOR: self.set_tide_level_indicator_moving_colors,
             ControllerCommand.NEWNOTIDELEVELINDICATORMOVINGCOLOR: self.no_tide_level_indicator_moving_colors
         }
+        self.led = None
+        self.direction = None
 
     def run(self):
-        led = None
-        direction = None
         on = True
         if self.moving_pattern != 'red_blink':
             first_time_data = self.led_queue.get()
-            led = first_time_data.led
-            direction = first_time_data.direction
+            self.led = first_time_data.led
+            self.direction = first_time_data.direction
             with self.strip_lock:
-                self.strip.update_tide_leds(led, direction, self.high_tide_direction_color,
+                self.strip.update_tide_leds(self.led, self.direction, self.high_tide_direction_color,
                                             self.low_tide_direction_color, self.tide_level_indicator_color,
                                             self.no_tide_level_indicator_color)
                 self.strip_lock.notify_all()
         while not self.is_stopping:
             if not self.led_queue.empty():
                 new_data = self.led_queue.get()
-                led = new_data.led
-                direction = new_data.direction
+                self.led = new_data.led
+                self.direction = new_data.direction
                 with self.strip_lock:
-                    self.strip.update_tide_leds(led, direction, self.high_tide_direction_color,
+                    self.strip.update_tide_leds(self.led, self.direction, self.high_tide_direction_color,
                                                 self.low_tide_direction_color, self.tide_level_indicator_color,
                                                 self.no_tide_level_indicator_color)
                     self.strip_lock.notify_all()
             if self.moving_pattern == 'wave':
-                if led is not None and direction is not None:
-                    self.led_wave(led, direction, self.command_queue)
+                if self.led is not None and self.direction is not None:
+                    self.led_wave(self.led, self.direction, self.command_queue)
             elif self.moving_pattern == 'regular':
                 pass
             elif self.moving_pattern == 'red_blink':
@@ -197,15 +197,39 @@ class StripControllerThread(Thread):
 
     def set_high_tide_direction_color(self, data):
         self.high_tide_direction_color = data
+        if self.led is not None and self.direction is not None:
+            with self.strip_lock:
+                self.strip.update_tide_leds(self.led, self.direction, self.high_tide_direction_color,
+                                        self.low_tide_direction_color, self.tide_level_indicator_color,
+                                        self.no_tide_level_indicator_color)
+                self.strip_lock.notify_all()
 
     def set_low_tide_direction_color(self, data):
         self.low_tide_direction_color = data
+        if self.led is not None and self.direction is not None:
+            with self.strip_lock:
+                self.strip.update_tide_leds(self.led, self.direction, self.high_tide_direction_color,
+                                        self.low_tide_direction_color, self.tide_level_indicator_color,
+                                        self.no_tide_level_indicator_color)
+                self.strip_lock.notify_all()
 
     def set_tide_level_indicator_color(self, data):
         self.tide_level_indicator_color = data
+        if self.led is not None and self.direction is not None:
+            with self.strip_lock:
+                self.strip.update_tide_leds(self.led, self.direction, self.high_tide_direction_color,
+                                        self.low_tide_direction_color, self.tide_level_indicator_color,
+                                        self.no_tide_level_indicator_color)
+                self.strip_lock.notify_all()
 
     def set_no_tide_level_indicator_color(self, data):
         self.no_tide_level_indicator_color = data
+        if self.led is not None and self.direction is not None:
+            with self.strip_lock:
+                self.strip.update_tide_leds(self.led, self.direction, self.high_tide_direction_color,
+                                        self.low_tide_direction_color, self.tide_level_indicator_color,
+                                        self.no_tide_level_indicator_color)
+                self.strip_lock.notify_all()
 
     def set_tide_level_indicator_moving_colors(self, data):
         self.tide_level_indicator_moving_colors = data

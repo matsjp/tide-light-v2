@@ -4,7 +4,7 @@ import xml.etree.ElementTree as ET
 import configparser
 import os
 
-from tidelight import TideTime
+from tidetime import TideTime
 
 
 def get_next_time_from():

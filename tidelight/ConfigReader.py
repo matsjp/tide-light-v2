@@ -4,7 +4,7 @@ import json
 import re
 from rpi_ws281x import *
 
-from tidelight import configExists, defaultConfig
+from util import configExists, defaultConfig
 
 if not configExists():
     defaultConfig()

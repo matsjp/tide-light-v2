@@ -7,7 +7,7 @@ from datetime import datetime
 from datetime import timedelta
 import ast
 
-from tidelight import configExists, defaultConfig
+from util import configExists, defaultConfig
 
 configPath = 'config.ini'
 

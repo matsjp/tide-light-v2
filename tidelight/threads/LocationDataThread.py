@@ -6,7 +6,7 @@ import requests
 from kartverket_tide_api import TideApi
 from kartverket_tide_api.parsers import LocationDataParser
 
-from tidelight import TideTime, get_next_api_run, get_time_in_30s, get_next_time_to, get_next_time_from
+from util import TideTime, get_next_api_run, get_time_in_30s, get_next_time_to, get_next_time_from
 
 
 class LocationDataThread(Thread):
