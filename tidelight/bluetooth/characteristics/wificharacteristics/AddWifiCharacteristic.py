@@ -18,7 +18,7 @@ class AddWifiCharacteristic(Characteristic):
 
     def onWriteRequest(self, data, offset, withoutResponse, callback):
         #Receive ssid and wifi password
-        #Attemot to connect
+        #Attempt to connect
         #read should return self._value
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG)

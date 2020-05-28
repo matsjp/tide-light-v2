@@ -11,6 +11,7 @@ from bluetooth.characteristics.configcharacteristics.NoTideLevelIndicatorMovingC
 from bluetooth.characteristics.configcharacteristics.MovingPatternCharacteristic import MovingPatternCharacteristic
 from bluetooth.characteristics.configcharacteristics.MovingSpeedCharacteristic import MovingSpeedCharacteristic
 from bluetooth.characteristics.configcharacteristics.LatLonCharacteristic import LatLonCharacteristic
+from bluetooth.characteristics.configcharacteristics.ResetCharacteristic import ResetCharacteristic
 
 class ConfigService(BlenoPrimaryService):
     uuid = 'ec00'
@@ -29,5 +30,6 @@ class ConfigService(BlenoPrimaryService):
             NoTideLevelIndicatorMovingColorCharacteristic(config),
             MovingPatternCharacteristic(config),
             MovingSpeedCharacteristic(config),
-            LatLonCharacteristic(config)
+            LatLonCharacteristic(config),
+            ResetCharacteristic(config)
           ]})

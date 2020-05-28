@@ -3,6 +3,8 @@ from datetime import timedelta
 import xml.etree.ElementTree as ET
 import configparser
 import os
+import json
+from rpi_ws281x import Color
 
 from tidetime import TideTime
 
@@ -39,49 +41,14 @@ def get_TideTimeCollection_from_xml_string(xml_string):
 
     return tide_times
 
+def color_string_to_color(color_string):
+    color = json.loads(color_string)
+    return Color(color[0], color[1], color[2])
 
-def configExists():
-    return os.path.exists('config.ini')
-
-
-def defaultConfig():
-    path = 'config.ini'
-    apivalues = {
-        'lat': '59.908',
-        'lon': '10.734'
-    }
-    ledstrip = {
-        'led_count': '60',
-        'led_pin': '18',
-        'led_freq_hz': '800000',
-        'led_dma': '10',
-        'led_brightness': '100',
-        'led_invert': 'False',
-        'led_channel': '0'
-    }
-    ldr = {
-        'ldr_pin': '11',
-        'ldr_active': 'True'
-    }
-    color = {
-        'color_format': 'rgb',
-        'high_tide_direction_color': '[24,255,4]',
-        'low_tide_direction_color': '[255,0,0]',
-        'tide_level_indicator_color': '[0,0,255]',
-        'no_tide_level_indicator_color': '[128,0,128]',
-        'tide_level_indicator_moving_color': '[[255,105,115],[255,159,176],[100,100,255]]',
-        'no_tide_level_indicator_moving_color': '[[91,73,255],[73,164,255],[73,255,255]]',
-        'moving_pattern': 'wave',
-        'moving_speed': '0.5',
-    }
-    offline = {
-        'offline_mode': 'False'
-    }
-    config = configparser.ConfigParser()
-    config['apivalues'] = apivalues
-    config['ledstrip'] = ledstrip
-    config['ldr'] = ldr
-    config['color'] = color
-    config['offline'] = offline
-
-    config.write(open(path, 'w+'))
+def colors_string_to_list(colors_string):
+    colors_list = json.loads(colors_string)
+    colors = []
+    for c in colors_list:
+        colors.append(c[0], c[1], c[2])
+    return colors
+    
