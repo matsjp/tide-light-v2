@@ -27,7 +27,7 @@ class ThreadManager:
 
     def __init__(self):
         self.config = ThreadManagerConfigBinding(self)
-        self.LED_COUNT, self.LED_PIN, self.LED_FREQ_HZ, self.LED_DMA, self.LED_INVERT, self.LED_BRIGHTNESS, self.LED_CHANNEL = self.config.getLEDConstants()
+        self.LED_COUNT, self.LED_PIN, self.LED_FREQ_HZ, self.LED_DMA, self.LED_BRIGHTNESS, self.LED_INVERT, self.LED_CHANNEL = self.config.getLEDConstants()
         self.lat, self.lon = self.config.getLatLon()
         self.ldr_pin = int(self.config.getLDRPin())
         self.ldr_active = ast.literal_eval(self.config.getLdrActive())
@@ -332,19 +332,19 @@ class ThreadManager:
         if self.thread_running(self.controller_name):
             controller_thread = self.get_thread(self.controller_name)
             if controller_thread is not None:
-                self.controller_command_queue.put(ControllerCommand.STOP, None)
+                self.controller_command_queue.put(ControllerCommand(ControllerCommand.STOP, None))
                 controller_thread.join()
         
         if self.thread_running(self.lighting_name):
             lighting_thread = self.get_thread(self.lighting_name)
             if lighting_thread is not None:
-                self.lighting_command_queue.put(LightingCommand.STOP, None)
+                self.lighting_command_queue.put(LightingCommand(LightingCommand.STOP, None))
                 lighting_thread.join()
         
         if self.thread_running(self.ldr_name):
             ldr_thread = self.get_thread(self.ldr_name)
             if ldr_thread is not None:
-                self.ldr_command_queue.put(LdrCommand.STOP, None)
+                self.ldr_command_queue.put(LdrCommand(LdrCommand.STOP, None))
                 ldr_thread.join()
         
         self.LED_COUNT, self.LED_PIN, self.LED_FREQ_HZ, self.LED_DMA, self.LED_INVERT, self.LED_BRIGHTNESS, self.LED_CHANNEL = self.config.getLEDConstants()
@@ -375,7 +375,7 @@ class ThreadManager:
         self.bluetooth_command_queue = Queue()
         self.bluetooth_reply_queue = Queue()
         
-        self.strip = TideLightLedStrip(self.LED_COUNT, self.LED_PIN, self.LED_FREQ_HZ, self.LED_DMA, self.LED_INVERT, self.LED_BRIGHTNESS,
+        self.strip = TideLightLedStrip(self.LED_COUNT, self.LED_PIN, self.LED_FREQ_HZ, self.LED_DMA, self.LED_BRIGHTNESS, self.LED_INVERT,
                                        self.LED_CHANNEL)
         self.strip_lock = threading.Condition()
         self.led_queue = Queue()
