@@ -160,10 +160,10 @@ class ThreadManager:
                     lighting_thread.start()
                     controller_thread = StripControllerThread(self.strip, self.strip_lock, high_tide_direction_color,
                                                               low_tide_direction_color,
+                                                              tide_level_indicator_color,
                                                               no_tide_level_indicator_color,
-                                                              no_tide_level_indicator_moving_colors,
-                                                              no_tide_level_indicator_moving_colors,
-                                                              tide_level_indicator_moving_colors, self.led_queue,
+                                                              tide_level_indicator_moving_colors,
+                                                              no_tide_level_indicator_moving_colors, self.led_queue,
                                                               moving_pattern,
                                                               LED_COUNT, moving_speed, self.controller_command_queue,
                                                               self.controller_reply_queue, name=self.controller_name)
