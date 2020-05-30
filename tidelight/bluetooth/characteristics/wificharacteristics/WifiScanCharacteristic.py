@@ -25,6 +25,8 @@ class WifiScanCharacteristic(Characteristic):
             callback(self.CYBLE_GATT_ERR_HTS_OUT_OF_RANGE)
         else:
             try:
+                #TODO scan in a new thread
+                #When a new scanning request arrives check if it is already scanning
                 cells = Cell.all('wlan0')
                 for cell in cells:
                     cellString = ''

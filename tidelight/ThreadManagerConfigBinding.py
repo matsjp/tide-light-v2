@@ -8,7 +8,7 @@ class ThreadManagerConfigBinding(Config):
 
     def setLatLon(self, lat, lon):
         new_lat, new_lon = super().setLatLon(lat, lon)
-        self.thread_manager.change_lon_lat(new_lat, new_lon)
+        self.thread_manager.change_lat_lon(new_lat, new_lon)
 
     def setBrightness(self, brightness):
         new_brightness = super().setBrightness(brightness)
@@ -49,4 +49,7 @@ class ThreadManagerConfigBinding(Config):
     def setMovingSpeed(self, movingSpeed):
         new_moving_speed = super().setMovingSpeed(movingSpeed)
         self.thread_manager.change_moving_speed(new_moving_speed)
+    
+        
+        
 
