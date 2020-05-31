@@ -45,6 +45,8 @@ class LdrThread(Thread):
         brightness = brightness / 10
         brightness = math.ceil(brightness)
         brightness = brightness * 10
+        if brightness > 255:
+            return 255
         return brightness
 
     def rc_time(self, pin_to_circuit):
