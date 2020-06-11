@@ -19,23 +19,25 @@ class OfflineDownloadCharacteristic(Characteristic):
         self.xmlPath = 'offline.xml'
           
     def onReadRequest(self, offset, callback):
-        #TODO
         
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
         else:
             #TODO: what if theres no such file
-            with open(self.xmlPath, 'r') as xmlfile:
-                xml = xmlfile.read()
-            parser = LocationDataParser(xml)
-            waterlevels = parser.parse_response()['data']
-            fromTime = waterlevels[0].time[:10]
-            toTime = waterlevels[len(waterlevels) - 1].time[:10]
-            dataString = fromTime + ':' + toTime
-            data = array.array('B', [0] * len(dataString))
-            for i in range(len(dataString)):
-                writeUInt8(data, ord(dataString[i]), i)
-            callback(Characteristic.RESULT_SUCCESS, data);
+            try:
+                with open(self.xmlPath, 'r') as xmlfile:
+                    xml = xmlfile.read()
+                parser = LocationDataParser(xml)
+                waterlevels = parser.parse_response()['data']
+                fromTime = waterlevels[0].time[:10]
+                toTime = waterlevels[len(waterlevels) - 1].time[:10]
+                dataString = fromTime + ':' + toTime
+                data = array.array('B', [0] * len(dataString))
+                for i in range(len(dataString)):
+                    writeUInt8(data, ord(dataString[i]), i)
+                callback(Characteristic.RESULT_SUCCESS, data);
+            except FileNotFoundError:
+                callback(Characteristic.RESULT_UNLIKELY_ERROR, None)
 
     def onWriteRequest(self, data, offset, withoutResponse, callback):
         if offset:
@@ -55,6 +57,7 @@ class OfflineDownloadCharacteristic(Characteristic):
                 response = api.get_location_data(self.lon, self.lat, fromTime, toTime, 'TAB')
                 with open(self.xmlPath, 'w+') as xmlfile:
                     xmlfile.write(response)
+                self.config.updateOfflineData()
                 callback(Characteristic.RESULT_SUCCESS)
             except ValueError as e:
                 print(e)

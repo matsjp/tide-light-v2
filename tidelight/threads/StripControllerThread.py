@@ -29,7 +29,7 @@ class StripControllerThread(Thread):
         self.is_stopping = False
         self.handlers = {
             ControllerCommand.STOP: self.stop,
-            ControllerCommand.XMLERROR: self.XMLERROR,
+            ControllerCommand.NEWMOVINGPATTERN: self.set_moving_pattern,
             ControllerCommand.NEWMOVINGSPEED: self.set_moving_speed,
             ControllerCommand.NEWHIGHTIDEDIRECTIONCOLOR: self.set_high_tide_direction_color,
             ControllerCommand.NEWLOWTIDEDIRECTIONCOLOR: self.set_low_tide_direction_color,
@@ -186,8 +186,8 @@ class StripControllerThread(Thread):
                 strip.show()
                 time.sleep(speed)
 
-    def XMLERROR(self, data):
-        self.moving_pattern = 'red_blink'
+    def set_moving_pattern(self, data):
+        self.moving_pattern = data
 
     def stop(self, data):
         self.is_stopping = True
@@ -239,7 +239,7 @@ class StripControllerThread(Thread):
 
 
 class ControllerCommand:
-    STOP, XMLERROR, NEWMOVINGSPEED, NEWHIGHTIDEDIRECTIONCOLOR, NEWLOWTIDEDIRECTIONCOLOR,\
+    STOP, NEWMOVINGPATTERN, NEWMOVINGSPEED, NEWHIGHTIDEDIRECTIONCOLOR, NEWLOWTIDEDIRECTIONCOLOR,\
         NEWTIDELEVELINDICATORCOLOR, NEWNOTIDELEVELINDICATORCOLOR, NEWTIDELEVELINDICATORMOVINGCOLOR,\
     NEWNOTIDELEVELINDICATORMOVINGCOLOR= range(9)
     def __init__(self, command_type, data):

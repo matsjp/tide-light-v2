@@ -32,7 +32,7 @@ class ThreadManager:
 
         self.handlers = {
             ThreadManager.LIGHTINGHANDLERS: {
-                LightingReply.XMLERROR: self.xml_error
+                LightingReply.XMLERROR: self._xml_error
             },
             ThreadManager.LOCATIONHANDLERS: {
 
@@ -60,6 +60,7 @@ class ThreadManager:
         self.ldr_name = 'ldr'
         self.location_name = 'location'
         self.controller_name = 'controller'
+        self.xml_error = False
         
         
 
@@ -92,12 +93,9 @@ class ThreadManager:
     def handle_reply(self, reply, handler):
         self.handlers[handler][reply.reply_type](reply.data)
 
-    def xml_error(self, data):
-        #TODO: closer look at this
-        if self.thread_running(self.lighting_name):
-            self.lighting_command_queue.put(LightingCommand(LightingCommand.STOP, None))
-        if self.thread_running(self.controller_name):
-            self.controller_command_queue.put(ControllerCommand(ControllerCommand.XMLERROR, None))
+    def _xml_error(self, data):
+        self.stop_lighting_thread()
+        self.change_moving_pattern('red_blink')
 
     def change_lat_lon(self, new_lat, new_lon):
         if new_lat != self.lat or new_lon != self.lon:
@@ -111,6 +109,12 @@ class ThreadManager:
                 self.start_location_thread()
                 self.start_controller_thread()
                 self.start_lighting_thread()
+    
+    def change_moving_pattern(self, new_moving_pattern):
+        if self.moving_pattern != new_moving_pattern:
+            self.moving_pattern = new_moving_pattern
+            if self.thread_running(self.controller_name):
+                self.controller_command_queue.put(ControllerCommand(ControllerCommand.NEWMOVINGPATTERN, new_moving_pattern))
 
 
 
@@ -122,6 +126,7 @@ class ThreadManager:
                 self.strip_lock.notify_all()
             if self.thread_running(self.ldr_name):
                 self.ldr_command_queue.put(LdrCommand(LdrCommand.SETBRIGHTNESS, self.LED_BRIGHTNESS))
+    
 
     def change_ldr_active(self, new_active):
         thread_running = self.thread_running(self.ldr_name)
@@ -187,6 +192,11 @@ class ThreadManager:
             self.moving_speed = new_moving_speed
             if self.thread_running(self.controller_name):
                 self.controller_command_queue.put(ControllerCommand(ControllerCommand.NEWMOVINGSPEED, new_moving_speed))
+    
+    def change_offline_mode(self, new_offline_mode):
+        if self.offline_mode != new_offline_mode:
+            self.offline_mode = new_offline_mode
+            self.reset()
 
     def thread_running(self, name):
         for thread in threading.enumerate():
@@ -212,9 +222,7 @@ class ThreadManager:
         return None
 
     def offline_tide_data(self):
-        # TODO: do something if none of the offline data is current date
         with self.tide_time_collection_lock:
-            # TODO: what if theres no such file
             try:
                 with open('offline.xml', 'r') as xmlfile:
                     xml = xmlfile.read()
@@ -222,27 +230,28 @@ class ThreadManager:
                 waterlevels = parser.parse_response()['data']
                 coll = []
                 for waterlevel in waterlevels:
-                    # TODO what to do if tide is None
                     tide = waterlevel.tide
                     timestring = waterlevel.time
                     timestring = timestring[:len(timestring) - 3] + timestring[len(timestring) - 2:]
                     timestamp = datetime.strptime(timestring, "%Y-%m-%dT%H:%M:%S%z").timestamp()
-                    # TODO figure out difference between time and timestamp. Why didn't past myself properly document that
                     coll.append(TideTime(tide=tide, timestamp=timestamp, time=timestring))
 
                 now = datetime.now().timestamp()
                 self.tide_time_collection.insert_tide_times(coll, now)
                 if self.tide_time_collection.is_empty():
-                    moving_pattern = 'red_blink'
+                    self._xml_error(None)
                 self.tide_time_collection_lock.notify_all()
             except FileNotFoundError:
-                self.moving_pattern = 'red_blink'
+                self._xml_error(None)
                 self.tide_time_collection_lock.notify_all()
             except ParseError:
-                self. moving_pattern = 'red_blink'
+                self._xml_error(None)
                 self.tide_time_collection_lock.notify_all()
             except CannotFindElementException:
-                self.moving_pattern = 'red_blink'
+                self._xml_error(None)
+                self.tide_time_collection_lock.notify_all()
+            except Exception:
+                self._xml_error(None)
                 self.tide_time_collection_lock.notify_all()
     
     def _read_config_variables(self):
@@ -345,7 +354,7 @@ class ThreadManager:
         self._read_config_variables()
         self._create_thread_queues()
         
-        self.strip = TideLightLedStrip(self.LED_COUNT, self.LED_PIN, self.LED_FREQ_HZ, self.LED_DMA, self.LED_BRIGHTNESS, self.LED_INVERT,
+        self.strip = TideLightLedStrip(self.LED_COUNT, self.LED_PIN, self.LED_FREQ_HZ, self.LED_DMA, self.LED_INVERT, self.LED_BRIGHTNESS,
                                        self.LED_CHANNEL)
         self.strip_lock = threading.Condition()
         self.led_queue = Queue()
@@ -367,3 +376,7 @@ class ThreadManager:
         if self.ldr_active:
             print('starting ldr thread')
             self.start_ldr_thread()
+    
+    def update_offline_data(self):
+        if self.offline_mode:
+            self.reset()

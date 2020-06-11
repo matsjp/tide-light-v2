@@ -25,14 +25,14 @@ class LightingThread(Thread):
         while not self.is_stopping:
             if datetime.now().timestamp() > next_run:
                 with self.tide_time_collection_lock:
-                    print("Light acquire")
+                    #print("Light acquire")
                     if self.tide_time_collection.is_empty():
                         self.tide_time_collection_lock.notify_all()
                         if self.offline_mode:
                             # TODO red blink
                             self.reply_quene.put(LightingReply(LightingReply.XMLERROR, None))
-                            print('XML error')
-                        print("Light release")
+                            print('XML error tide_time_collection is empty')
+                        #print("Light release")
                     else:
                         now = datetime.now().timestamp()
                         # TODO: better variable name
@@ -41,9 +41,9 @@ class LightingThread(Thread):
                             self.tide_time_collection_lock.notify_all()
                             if self.offline_mode:
                                 # TODO red blink
-                                print('XML error')
+                                print('XML error time_stamp_collection is None')
                                 self.reply_quene.put(LightingReply(LightingReply.XMLERROR, None))
-                            print("Light release")
+                            #print("Light release")
                         else:
                             timestamp = time_stamp_collection[0]
                             led = time_stamp_collection[1]
@@ -54,12 +54,12 @@ class LightingThread(Thread):
                             else:
                                 led_string = led_string.format("x", "x" * (self.LED_COUNT - 2 - (led - 1)),
                                                                "o" * (led - 1), "o")
-                            print(led_string)
+                            #print(led_string)
                             self.led_queue.put(LedDirection(led, direction))
                             self.tide_time_collection_lock.notify_all()
-                            print("Light release")
+                            #print("Light release")
                             next_run = timestamp
-                            print(next_run)
+                            #print(next_run)
             if not self.command_queue.empty():
                 command = self.command_queue.get()
                 self.handle_command(command)
