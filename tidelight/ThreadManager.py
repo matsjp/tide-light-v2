@@ -6,7 +6,6 @@ from xml.etree.ElementTree import ParseError
 import ast
 
 import RPi.GPIO as GPIO
-#from ConfigReader import *
 from TideLightLedStrip import TideLightLedStrip
 from kartverket_tide_api.exceptions import CannotFindElementException
 from kartverket_tide_api.parsers import LocationDataParser
@@ -27,33 +26,9 @@ class ThreadManager:
 
     def __init__(self):
         self.config = ThreadManagerConfigBinding(self)
-        self.LED_COUNT, self.LED_PIN, self.LED_FREQ_HZ, self.LED_DMA, self.LED_BRIGHTNESS, self.LED_INVERT, self.LED_CHANNEL = self.config.getLEDConstants()
-        self.lat, self.lon = self.config.getLatLon()
-        self.ldr_pin = int(self.config.getLDRPin())
-        self.ldr_active = ast.literal_eval(self.config.getLdrActive())
-        self.offline_mode = ast.literal_eval(self.config.getOfflineMode())
-        self.color_format = self.config.getColorFormat()
+        self._read_config_variables()
         
-        self.high_tide_direction_color = self.color_converter(self.config.getHighTideDirectionColor())
-        self.low_tide_direction_color = self.color_converter(self.config.getLowTideDirectionColor())
-        self.tide_level_indicator_color = self.color_converter(self.config.getTideLevelIndicatorColor())
-        self.no_tide_level_indicator_color = self.color_converter(self.config.getNoTideLevelIndicatorColor())
-        self.tide_level_indicator_moving_colors = self.colors_converter(self.config.getTideLevelIndicatorMovingColor())
-        self.no_tide_level_indicator_moving_colors = self.colors_converter(self.config.getNoTideLevelIndicatorMovingColor())
-        
-        self.moving_speed = float(self.config.getMovingSpeed())
-        self.moving_pattern = self.config.getMovingPattern()
-        
-        self.location_command_queue = Queue()
-        self.location_reply_queue = Queue()
-        self.ldr_command_queue = Queue()
-        self.ldr_reply_queue = Queue()
-        self.lighting_command_queue = Queue()
-        self.lighting_reply_queue = Queue()
-        self.controller_command_queue = Queue()
-        self.controller_reply_queue = Queue()
-        self.bluetooth_command_queue = Queue()
-        self.bluetooth_reply_queue = Queue()
+        self._create_thread_queues()
 
         self.handlers = {
             ThreadManager.LIGHTINGHANDLERS: {
@@ -92,41 +67,21 @@ class ThreadManager:
         #GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BOARD)
         self.strip.begin()
-        location_data_thread = LocationDataThread(self.lat, self.lon, self.tide_time_collection, self.tide_time_collection_lock,
-                                                  self.location_command_queue, self.location_reply_queue,
-                                                  name=self.location_name)
+        print('starting bluetooth thread')
+        self.start_bluetooth_thread()
         if self.offline_mode:
             print('starting offline mode thread')
             self.offline_tide_data()
         else:
             print('starting location data thread')
-            location_data_thread.start()
-        lighting_thread = LightingThread(self.tide_time_collection, self.tide_time_collection_lock, self.LED_COUNT,
-                                         self.led_queue,
-                                         self.offline_mode, self.lighting_command_queue, self.lighting_reply_queue,
-                                         name=self.lighting_name)
-        ldr_thread = LdrThread(self.ldr_pin, self.LED_BRIGHTNESS, self.LED_BRIGHTNESS, self.strip, self.strip_lock,
-                               self.ldr_command_queue, self.ldr_reply_queue, name=self.ldr_name)
-        bluetooth_thread = BluetoothThread(self.bluetooth_command_queue, self.bluetooth_reply_queue, self.config,
-                                           name=self.bluetooth_name)
-        
-        controller_thread = StripControllerThread(self.strip, self.strip_lock, self.high_tide_direction_color,
-                                                  self.low_tide_direction_color,
-                                                  self.tide_level_indicator_color, self.no_tide_level_indicator_color,
-                                                  self.tide_level_indicator_moving_colors,
-                                                  self.no_tide_level_indicator_moving_colors, self.led_queue, self.moving_pattern,
-                                                  self.LED_COUNT, self.moving_speed, self.controller_command_queue,
-                                                  self.controller_reply_queue, name=self.controller_name)
-
+            self.start_location_thread()
         print('starting lighting thread')
-        lighting_thread.start()
+        self.start_lighting_thread()
         print('starting controller thread')
-        controller_thread.start()
+        self.start_controller_thread()
         if self.ldr_active:
             print('starting ldr thread')
-            ldr_thread.start()
-        print('starting bluetooth thread')
-        bluetooth_thread.start()
+            self.start_ldr_thread()
         while True:
             if not self.lighting_reply_queue.empty():
                 reply = self.lighting_reply_queue.get()
@@ -138,6 +93,7 @@ class ThreadManager:
         self.handlers[handler][reply.reply_type](reply.data)
 
     def xml_error(self, data):
+        #TODO: closer look at this
         if self.thread_running(self.lighting_name):
             self.lighting_command_queue.put(LightingCommand(LightingCommand.STOP, None))
         if self.thread_running(self.controller_name):
@@ -148,44 +104,13 @@ class ThreadManager:
             self.lat = new_lat
             self.lon = new_lon
             if not self.offline_mode:
-                if self.thread_running(self.location_name):
-                    location_thread = self.get_thread(self.location_name)
-                    if location_thread is not None:
-                        self.location_command_queue.put(LocationCommand(LocationCommand.STOP, None))
-                        location_thread.join()
-                    if self.thread_running(self.controller_name):
-                        controller_thread = self.get_thread(self.controller_name)
-                        if controller_thread is not None:
-                            self.controller_command_queue.put(ControllerCommand(ControllerCommand.STOP, None))
-                            controller_thread.join()
-                    if self.thread_running(self.lighting_name):
-                        lighhting_thread = self.get_thread(self.lighting_name)
-                        if lighhting_thread is not None:
-                            self.lighting_command_queue.put(LightingCommand(LightingCommand.STOP, None))
-                            lighhting_thread.join()
-                    self.tide_time_collection.clear()
-                    location_data_thread = LocationDataThread(self.lat, self.lon, self.tide_time_collection,
-                                                              self.tide_time_collection_lock,
-                                                              self.location_command_queue, self.location_reply_queue,
-                                                              name=self.location_name)
-                    location_data_thread.start()
-                    lighting_thread = LightingThread(self.tide_time_collection, self.tide_time_collection_lock,
-                                                     self.LED_COUNT,
-                                                     self.led_queue,
-                                                     self.offline_mode, self.lighting_command_queue,
-                                                     self.lighting_reply_queue,
-                                                     name=self.lighting_name)
-                    lighting_thread.start()
-                    controller_thread = StripControllerThread(self.strip, self.strip_lock, self.high_tide_direction_color,
-                                                              self.low_tide_direction_color,
-                                                              self.tide_level_indicator_color,
-                                                              self.no_tide_level_indicator_color,
-                                                              self.tide_level_indicator_moving_colors,
-                                                              self.no_tide_level_indicator_moving_colors, self.led_queue,
-                                                              self.moving_pattern,
-                                                              self.LED_COUNT, self.moving_speed, self.controller_command_queue,
-                                                              self.controller_reply_queue, name=self.controller_name)
-                    controller_thread.start()
+                self.stop_location_thread()
+                self.stop_controller_thread()
+                self.stop_lighting_thread()
+                self.tide_time_collection.clear()
+                self.start_location_thread()
+                self.start_controller_thread()
+                self.start_lighting_thread()
 
 
 
@@ -203,12 +128,10 @@ class ThreadManager:
 
         if new_active and not thread_running:
             self.ldr_active = new_active
-            ldr_thread = LdrThread(self.ldr_pin, self.LED_BRIGHTNESS, self.LED_BRIGHTNESS, self.strip, self.strip_lock,
-                                   self.ldr_command_queue, self.ldr_reply_queue, name='ldr')
-            ldr_thread.start()
+            self.start_ldr_thread()
         elif not new_active and thread_running:
             self.ldr_active = new_active
-            self.ldr_command_queue.put(LdrCommand(LdrCommand.STOP, None))
+            self.stop_ldr_thread()
 
     def change_high_tide_direction_color(self, new_color):
         color = self.color_converter(new_color)
@@ -242,7 +165,7 @@ class ThreadManager:
                 self.controller_command_queue.put(ControllerCommand(ControllerCommand.NEWNOTIDELEVELINDICATORCOLOR,
                                                                     color))
 
-    def change_tide_level_indicator_moving_color(self, new_colors):
+    def change_tide_level_indicator_moving_colors(self, new_colors):
         colors = self.colors_converter(new_colors)
         if colors != self.tide_level_indicator_moving_colors:
             self.tide_level_indicator_moving_colors = colors
@@ -250,7 +173,7 @@ class ThreadManager:
                 self.controller_command_queue.put(ControllerCommand(ControllerCommand.NEWTIDELEVELINDICATORMOVINGCOLOR,
                                                                     color))
 
-    def change_no_tide_level_indicator_moving_color(self, new_colors):
+    def change_no_tide_level_indicator_moving_colors(self, new_colors):
         colors = self.colors_converter(new_colors)
         if colors != self.no_tide_level_indicator_moving_colors:
             self.no_tide_level_indicator_moving_colors = colors
@@ -322,32 +245,8 @@ class ThreadManager:
                 self.moving_pattern = 'red_blink'
                 self.tide_time_collection_lock.notify_all()
     
-    def reset(self):
-        if self.thread_running(self.location_name):
-                    location_thread = self.get_thread(self.location_name)
-                    if location_thread is not None:
-                        self.location_command_queue.put(LocationCommand(LocationCommand.STOP, None))
-                        location_thread.join()
-        
-        if self.thread_running(self.controller_name):
-            controller_thread = self.get_thread(self.controller_name)
-            if controller_thread is not None:
-                self.controller_command_queue.put(ControllerCommand(ControllerCommand.STOP, None))
-                controller_thread.join()
-        
-        if self.thread_running(self.lighting_name):
-            lighting_thread = self.get_thread(self.lighting_name)
-            if lighting_thread is not None:
-                self.lighting_command_queue.put(LightingCommand(LightingCommand.STOP, None))
-                lighting_thread.join()
-        
-        if self.thread_running(self.ldr_name):
-            ldr_thread = self.get_thread(self.ldr_name)
-            if ldr_thread is not None:
-                self.ldr_command_queue.put(LdrCommand(LdrCommand.STOP, None))
-                ldr_thread.join()
-        
-        self.LED_COUNT, self.LED_PIN, self.LED_FREQ_HZ, self.LED_DMA, self.LED_INVERT, self.LED_BRIGHTNESS, self.LED_CHANNEL = self.config.getLEDConstants()
+    def _read_config_variables(self):
+        self.LED_COUNT, self.LED_PIN, self.LED_FREQ_HZ, self.LED_DMA, self.LED_BRIGHTNESS, self.LED_INVERT, self.LED_CHANNEL = self.config.getLEDConstants()
         self.lat, self.lon = self.config.getLatLon()
         self.ldr_pin = int(self.config.getLDRPin())
         self.ldr_active = ast.literal_eval(self.config.getLdrActive())
@@ -363,7 +262,8 @@ class ThreadManager:
         
         self.moving_speed = float(self.config.getMovingSpeed())
         self.moving_pattern = self.config.getMovingPattern()
-        
+    
+    def _create_thread_queues(self):
         self.location_command_queue = Queue()
         self.location_reply_queue = Queue()
         self.ldr_command_queue = Queue()
@@ -374,6 +274,76 @@ class ThreadManager:
         self.controller_reply_queue = Queue()
         self.bluetooth_command_queue = Queue()
         self.bluetooth_reply_queue = Queue()
+    
+    
+    def stop_location_thread(self):
+        if self.thread_running(self.location_name):
+                    location_thread = self.get_thread(self.location_name)
+                    if location_thread is not None:
+                        self.location_command_queue.put(LocationCommand(LocationCommand.STOP, None))
+                        location_thread.join()
+    
+    def stop_controller_thread(self):
+        if self.thread_running(self.controller_name):
+            controller_thread = self.get_thread(self.controller_name)
+            if controller_thread is not None:
+                self.controller_command_queue.put(ControllerCommand(ControllerCommand.STOP, None))
+                controller_thread.join()
+    
+    def stop_lighting_thread(self):
+        if self.thread_running(self.lighting_name):
+            lighting_thread = self.get_thread(self.lighting_name)
+            if lighting_thread is not None:
+                self.lighting_command_queue.put(LightingCommand(LightingCommand.STOP, None))
+                lighting_thread.join()
+    
+    def stop_ldr_thread(self):
+        if self.thread_running(self.ldr_name):
+            ldr_thread = self.get_thread(self.ldr_name)
+            if ldr_thread is not None:
+                self.ldr_command_queue.put(LdrCommand(LdrCommand.STOP, None))
+                ldr_thread.join()
+    
+    def start_location_thread(self):
+        location_data_thread = LocationDataThread(self.lat, self.lon, self.tide_time_collection, self.tide_time_collection_lock,
+                                                  self.location_command_queue, self.location_reply_queue,
+                                                  name=self.location_name)
+        location_data_thread.start()
+    
+    def start_lighting_thread(self):
+        lighting_thread = LightingThread(self.tide_time_collection, self.tide_time_collection_lock, self.LED_COUNT,
+                                         self.led_queue,
+                                         self.offline_mode, self.lighting_command_queue, self.lighting_reply_queue,
+                                         name=self.lighting_name)
+        lighting_thread.start()
+    
+    def start_ldr_thread(self):
+        ldr_thread = LdrThread(self.ldr_pin, self.LED_BRIGHTNESS, self.LED_BRIGHTNESS, self.strip, self.strip_lock,
+                               self.ldr_command_queue, self.ldr_reply_queue, name=self.ldr_name)
+        ldr_thread.start()
+    
+    def start_controller_thread(self):
+        controller_thread = StripControllerThread(self.strip, self.strip_lock, self.high_tide_direction_color,
+                                                  self.low_tide_direction_color,
+                                                  self.tide_level_indicator_color, self.no_tide_level_indicator_color,
+                                                  self.tide_level_indicator_moving_colors,
+                                                  self.no_tide_level_indicator_moving_colors, self.led_queue, self.moving_pattern,
+                                                  self.LED_COUNT, self.moving_speed, self.controller_command_queue,
+                                                  self.controller_reply_queue, name=self.controller_name)
+        controller_thread.start()
+    
+    def start_bluetooth_thread(self):
+        bluetooth_thread = BluetoothThread(self.bluetooth_command_queue, self.bluetooth_reply_queue, self.config,
+                                           name=self.bluetooth_name)
+        bluetooth_thread.start()
+    
+    def reset(self):
+        self.stop_location_thread()
+        self.stop_controller_thread()
+        self.stop_lighting_thread()
+        self.stop_ldr_thread()
+        self._read_config_variables()
+        self._create_thread_queues()
         
         self.strip = TideLightLedStrip(self.LED_COUNT, self.LED_PIN, self.LED_FREQ_HZ, self.LED_DMA, self.LED_BRIGHTNESS, self.LED_INVERT,
                                        self.LED_CHANNEL)
@@ -383,34 +353,17 @@ class ThreadManager:
         self.tide_time_collection_lock = threading.Condition()
         
         self.strip.begin()
-        location_data_thread = LocationDataThread(self.lat, self.lon, self.tide_time_collection, self.tide_time_collection_lock,
-                                                  self.location_command_queue, self.location_reply_queue,
-                                                  name=self.location_name)
         if self.offline_mode:
             print('starting offline mode thread')
             self.offline_tide_data()
         else:
             print('starting location data thread')
-            location_data_thread.start()
-        lighting_thread = LightingThread(self.tide_time_collection, self.tide_time_collection_lock, self.LED_COUNT,
-                                         self.led_queue,
-                                         self.offline_mode, self.lighting_command_queue, self.lighting_reply_queue,
-                                         name=self.lighting_name)
-        ldr_thread = LdrThread(self.ldr_pin, self.LED_BRIGHTNESS, self.LED_BRIGHTNESS, self.strip, self.strip_lock,
-                               self.ldr_command_queue, self.ldr_reply_queue, name=self.ldr_name)
-        
-        controller_thread = StripControllerThread(self.strip, self.strip_lock, self.high_tide_direction_color,
-                                                  self.low_tide_direction_color,
-                                                  self.tide_level_indicator_color, self.no_tide_level_indicator_color,
-                                                  self.tide_level_indicator_moving_colors,
-                                                  self.no_tide_level_indicator_moving_colors, self.led_queue, self.moving_pattern,
-                                                  self.LED_COUNT, self.moving_speed, self.controller_command_queue,
-                                                  self.controller_reply_queue, name=self.controller_name)
+            self.start_location_thread()
 
         print('starting lighting thread')
-        lighting_thread.start()
+        self.start_lighting_thread()
         print('starting controller thread')
-        controller_thread.start()
+        self.start_controller_thread()
         if self.ldr_active:
             print('starting ldr thread')
-            ldr_thread.start()
+            self.start_ldr_thread()
