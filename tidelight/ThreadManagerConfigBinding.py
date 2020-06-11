@@ -50,6 +50,10 @@ class ThreadManagerConfigBinding(Config):
         new_moving_speed = super().setMovingSpeed(movingSpeed)
         self.thread_manager.change_moving_speed(new_moving_speed)
     
+    def setMovingPattern(self, movingPattern):
+        new_moving_pattern = super().setMovingPattern(movingPattern)
+        self.thread_manager.change_moving_pattern(new_moving_pattern)
+    
     def setOfflineMode(self, mode):
         new_mode = super().setOfflineMode(mode)
         self.thread_manager.change_offline_mode(ast.literal_eval(mode))

@@ -22,7 +22,8 @@ colorFormats = {
 }
 
 movingPatterns = {
-    0x1: 'wave'
+    0x1: 'wave',
+    0x2: 'regular'
 }
 
 offlineModeStates = {
@@ -169,7 +170,7 @@ class Config():
         return config.get('color', 'moving_pattern')
 
     def setMovingPattern(self, movingPattern):
-        if movingPattern != 'wave':
+        if movingPattern not in list(movingPatterns.values()):
             raise ValueError('movingPattern must be wave')
         config = self._getConfig()
         config.set('color', 'moving_pattern', movingPattern)
