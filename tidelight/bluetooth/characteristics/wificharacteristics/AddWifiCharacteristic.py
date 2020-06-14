@@ -80,9 +80,10 @@ network={{
         return int(grep[:grep.index(':')])
     
     def modifyExistingPassword(self, password, lineNumber):
+        #TODO this causes a wifi bug with invalid wpa_supplicant.conf format. pks is added without ""
         with open(self.wpa_supplicant, 'r') as file:
             lines = file.readlines()
-        lines[lineNumber] = '    psk={}\n'.format(password)
+        lines[lineNumber] = '    psk="{}"\n'.format(password)
         with open(self.wpa_supplicant, 'w') as file:
             for i in range(len(lines)):
                 file.write(lines[i])

@@ -2,6 +2,7 @@ from pybleno import *
 from .services.ConfigService import ConfigService
 from .services.WifiService import WifiService
 from .services.OfflineService import OfflineService
+import time
 
 
 class Peripheral:
@@ -45,6 +46,8 @@ class Peripheral:
             ])
 
     def start(self):
+        #TODO check if bluetooth is running
+        time.sleep(10)
         self.bleno.start()
 
     def stop(self):
