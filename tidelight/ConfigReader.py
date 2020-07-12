@@ -3,7 +3,8 @@ import ast
 import json
 import re
 from rpi_ws281x import *
-
+"""TODO:
+Confirm that file is not in use anywhere and delete"""
 from util import configExists, defaultConfig
 
 if not configExists():

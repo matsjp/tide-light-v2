@@ -36,7 +36,8 @@ class Config():
     def __init__(self):
         if not self.configExists():
             self.defaultConfig()
-        self.validateConfig()
+        if not self.validateConfig():
+            self.defaultConfig()
 
     def getLatLon(self):
         config = self._getConfig()
@@ -311,6 +312,8 @@ class Config():
         
     
     def validateConfig(self):
+        #TODO: test this
+        #TODO: handle all possible exceptions
         regex_color_list = '^\[(\[([0-9]|[1-8][0-9]|9[0-9]|1[0-9]' \
                    '{2}|2[0-4][0-9]|25[0-5]),([0-9]|[1-8][0-9]|9[0-9]|1[0-9' \
                    ']{2}|2[0-4][0-9]|25[0-5]),([0-9]|[1-8][0-9]|9[0-9]|1[0-' \
@@ -354,47 +357,47 @@ class Config():
         if not re.match(regex_single_color, high_tide_direction_color_string):
             print('high_tide_direction_color must have the following format: [23,43,34] where' \
                   'the digit is between 0 and 255')
-            exit()
+            return False
         htdc_list = json.loads(high_tide_direction_color_string)
 
         low_tide_direction_color_string = config.get('color', 'low_tide_direction_color')
         if not re.match(regex_single_color, low_tide_direction_color_string):
             print('low_tide_direction_color must have the following format: [23,43,34] where' \
                   'the digit is between 0 and 255')
-            exit()
+            return False
         ltdc_list = json.loads(low_tide_direction_color_string)
 
         tide_level_indicator_color_string = config.get('color', 'tide_level_indicator_color')
         if not re.match(regex_single_color, tide_level_indicator_color_string):
             print('tide_level_indicator_color must have the following format: [23,43,34] where' \
                   'the digit is between 0 and 255')
-            exit()
+            return False
         tlic_list = json.loads(tide_level_indicator_color_string)
 
         no_tide_level_indicator_color_string = config.get('color', 'no_tide_level_indicator_color')
         if not re.match(regex_single_color, no_tide_level_indicator_color_string):
             print('no_tide_level_indicator_color must have the following format: [23,43,34] where' \
                   'the digit is between 0 and 255')
-            exit()
+            return False
         ntlic_list = json.loads(no_tide_level_indicator_color_string)
 
         tide_level_indicator_moving_color_string = config.get('color', 'tide_level_indicator_moving_color')
         if not re.match(regex_color_list, tide_level_indicator_moving_color_string):
             print('tide_level_indicator_moving_color must have the following format: [[23,43,34],[13,255,1]] etc where' \
                   'the digit is between 0 and 255')
-            exit()
+            return False
         tlimc_list = json.loads(tide_level_indicator_moving_color_string)
 
         no_tide_level_indicator_moving_color_string = config.get('color', 'no_tide_level_indicator_moving_color')
         if not re.match(regex_color_list, no_tide_level_indicator_moving_color_string):
             print('no_tide_level_indicator_moving_color must have the following format: [[23,43,34],[13,255,1]] etc where' \
                   'the digit is between 0 and 255')
-            exit()
+            return False
         ntlimc_list = json.loads(no_tide_level_indicator_moving_color_string)
 
         if len(ntlimc_list) != len(tlimc_list):
             print('The number of rgbs in each moving tide indicator must be equal')
-            exit()
+            return False
 
         if color_format == 'rgb':
             high_tide_direction_color = Color(htdc_list[0], htdc_list[1], htdc_list[2])
@@ -425,10 +428,11 @@ class Config():
         moving_pattern = config.get('color', 'moving_pattern')
         if moving_pattern not in ['no', 'wave', 'regular']:
             print('moving_pattern must be no, wave or regular')
-            exit()
+            return False
 
         if (moving_pattern in ['wave', 'regular'] and
                 (len(tide_level_indicator_moving_colors) == 0
                  or len(no_tide_level_indicator_moving_colors) == 0)):
             print('For moving patterns you need colors. They cannot be []')
-            exit()
+            return False
+        return True

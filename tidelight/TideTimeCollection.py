@@ -21,7 +21,6 @@ class TideTimeCollection:
                 if tide_times_list[i].timestamp < now:
                     times_to_be_removed += 1
                 else:
-                    print(tide_times_list[i].timestamp)
                     break
             for i in range(0, times_to_be_removed):
                 tide_times_list.pop(0)

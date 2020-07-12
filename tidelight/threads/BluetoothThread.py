@@ -23,7 +23,7 @@ class BluetoothThread(Thread):
                 self.handle_command(command)
             time.sleep(5)
 
-    def stop(self):
+    def stop(self, data):
         self.is_stopping = True
         self.peripheral.stop()
 

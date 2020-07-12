@@ -9,7 +9,7 @@ import RPi.GPIO as GPIO
 from TideLightLedStrip import TideLightLedStrip
 from kartverket_tide_api.exceptions import CannotFindElementException
 from kartverket_tide_api.parsers import LocationDataParser
-from threads.BluetoothThread import BluetoothThread
+from threads.BluetoothThread import BluetoothThread, BluetoothCommand
 from threads.LdrThread import LdrThread, LdrCommand
 from threads.LocationDataThread import LocationDataThread, LocationCommand
 from threads.StripControllerThread import StripControllerThread, ControllerCommand, ControllerReply
@@ -46,7 +46,7 @@ class ThreadManager:
             ThreadManager.BLUETOOTHHANDLERS:
                 {
 
-                }
+            }
         }
         self.strip = TideLightLedStrip(self.LED_COUNT, self.LED_PIN, self.LED_FREQ_HZ, self.LED_DMA, self.LED_INVERT, self.LED_BRIGHTNESS,
                                        self.LED_CHANNEL)
@@ -61,13 +61,16 @@ class ThreadManager:
         self.location_name = 'location'
         self.controller_name = 'controller'
         self.xml_error = False
+        self.shutdown = False
         
         
 
     def run(self):
-        #GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BOARD)
         self.strip.begin()
+        for i in range(self.LED_COUNT):
+            self.strip.setPixelColor(i, Color(0,255,0))
+            self.strip.show()
         print('starting bluetooth thread')
         self.start_bluetooth_thread()
         if self.offline_mode:
@@ -83,7 +86,7 @@ class ThreadManager:
         if self.ldr_active:
             print('starting ldr thread')
             self.start_ldr_thread()
-        while True:
+        while not self.shutdown:
             if not self.lighting_reply_queue.empty():
                 reply = self.lighting_reply_queue.get()
                 self.handle_reply(reply, ThreadManager.LIGHTINGHANDLERS)
@@ -225,22 +228,32 @@ class ThreadManager:
         with self.tide_time_collection_lock:
             try:
                 with open('offline.xml', 'r') as xmlfile:
+                    print("Starting to read file")
                     xml = xmlfile.read()
+                    print("done reading file")
                 parser = LocationDataParser(xml)
+                print("parsing data")
                 waterlevels = parser.parse_response()['data']
+                print(waterlevels)
+                print("done parsing")
                 coll = []
+                
+                print("adding data to coll")
                 for waterlevel in waterlevels:
                     tide = waterlevel.tide
                     timestring = waterlevel.time
                     timestring = timestring[:len(timestring) - 3] + timestring[len(timestring) - 2:]
                     timestamp = datetime.strptime(timestring, "%Y-%m-%dT%H:%M:%S%z").timestamp()
                     coll.append(TideTime(tide=tide, timestamp=timestamp, time=timestring))
+                print("done")
 
                 now = datetime.now().timestamp()
+                print("adding data to tide time collection")
                 self.tide_time_collection.insert_tide_times(coll, now)
                 if self.tide_time_collection.is_empty():
                     self._xml_error(None)
                 self.tide_time_collection_lock.notify_all()
+                print("offline data ready")
             except FileNotFoundError:
                 self._xml_error(None)
                 self.tide_time_collection_lock.notify_all()
@@ -313,6 +326,13 @@ class ThreadManager:
                 self.ldr_command_queue.put(LdrCommand(LdrCommand.STOP, None))
                 ldr_thread.join()
     
+    def stop_bluetooth_thread(self):
+        if self.thread_running(self.bluetooth_name):
+            bluetooth_thread = self.get_thread(self.bluetooth_name)
+            if bluetooth_thread is not None:
+                self.bluetooth_command_queue.put(BluetoothCommand(BluetoothCommand.STOP, None))
+                bluetooth_thread.join()
+    
     def start_location_thread(self):
         location_data_thread = LocationDataThread(self.lat, self.lon, self.tide_time_collection, self.tide_time_collection_lock,
                                                   self.location_command_queue, self.location_reply_queue,
@@ -380,3 +400,20 @@ class ThreadManager:
     def update_offline_data(self):
         if self.offline_mode:
             self.reset()
+    
+    def stop(self):
+        print("Stopping location thread")
+        self.stop_location_thread()
+        print("Stopping location thread")
+        self.stop_controller_thread()
+        print("Stopping lighting thread")
+        self.stop_lighting_thread()
+        print("Stopping ldr thread")
+        self.stop_ldr_thread()
+        print("Stopping bluetooth thread")
+        self.stop_bluetooth_thread()
+        print("Cleaning up GPIO")
+        GPIO.cleanup()
+        print("Shutting down the tide light program")
+        self.shutdown = True
+        

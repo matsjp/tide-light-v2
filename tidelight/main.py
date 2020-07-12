@@ -2,6 +2,10 @@ from ThreadManager import ThreadManager
 print('Starting tide light script')
 
 manager = ThreadManager()
-manager.run()
+try:
+    manager.run()
+except KeyboardInterrupt:
+    manager.stop()
+
 
 
