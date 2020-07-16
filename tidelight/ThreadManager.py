@@ -14,6 +14,9 @@ from threads.LdrThread import LdrThread, LdrCommand
 from threads.LocationDataThread import LocationDataThread, LocationCommand
 from threads.StripControllerThread import StripControllerThread, ControllerCommand, ControllerReply
 from threads.LightingThread import LightingThread, LightingReply, LightingCommand
+from threads.OfflinePrunerThread import OfflinePrunerThread, OfflinePrunerReply, OfflinePrunerCommand
+from threads.OfflineThread import OfflineThread, OfflineReply, OfflineCommand
+
 
 from TideTimeCollection import TideTimeCollection
 from util import *
@@ -22,7 +25,7 @@ from ThreadManagerConfigBinding import ThreadManagerConfigBinding
 
 
 class ThreadManager:
-    LIGHTINGHANDLERS, LOCATIONHANDLERS, BLUETOOTHHANDLERS, LDRHANDLERS, CONTROLLERHANDLERS = range(5)
+    LIGHTINGHANDLERS, LOCATIONHANDLERS, BLUETOOTHHANDLERS, LDRHANDLERS, CONTROLLERHANDLERS, PRUNERHANDLERS, OFFLINEHANDLERS = range(7)
 
     def __init__(self):
         self.config = ThreadManagerConfigBinding(self)
@@ -46,10 +49,15 @@ class ThreadManager:
             ThreadManager.BLUETOOTHHANDLERS:
                 {
 
+            },
+            ThreadManager.PRUNERHANDLERS: {
+            },
+            ThreadManager.OFFLINEHANDLERS:{
             }
         }
         self.strip = TideLightLedStrip(self.LED_COUNT, self.LED_PIN, self.LED_FREQ_HZ, self.LED_DMA, self.LED_INVERT, self.LED_BRIGHTNESS,
                                        self.LED_CHANNEL)
+        self.xml_lock = threading.Condition()
         self.strip_lock = threading.Condition()
         self.led_queue = Queue()
         self.tide_time_collection = TideTimeCollection(self.LED_COUNT)
@@ -60,6 +68,8 @@ class ThreadManager:
         self.ldr_name = 'ldr'
         self.location_name = 'location'
         self.controller_name = 'controller'
+        self.pruner_name = 'pruner'
+        self.offline_name = 'offline'
         self.xml_error = False
         self.shutdown = False
         
@@ -75,7 +85,8 @@ class ThreadManager:
         self.start_bluetooth_thread()
         if self.offline_mode:
             print('starting offline mode thread')
-            self.offline_tide_data()
+            #self.offline_tide_data()
+            self.start_offline_thread()
         else:
             print('starting location data thread')
             self.start_location_thread()
@@ -86,6 +97,8 @@ class ThreadManager:
         if self.ldr_active:
             print('starting ldr thread')
             self.start_ldr_thread()
+        print("starting pruner thread")
+        self.start_pruner_thread()
         while not self.shutdown:
             if not self.lighting_reply_queue.empty():
                 reply = self.lighting_reply_queue.get()
@@ -234,7 +247,6 @@ class ThreadManager:
                 parser = LocationDataParser(xml)
                 print("parsing data")
                 waterlevels = parser.parse_response()['data']
-                print(waterlevels)
                 print("done parsing")
                 coll = []
                 
@@ -296,6 +308,10 @@ class ThreadManager:
         self.controller_reply_queue = Queue()
         self.bluetooth_command_queue = Queue()
         self.bluetooth_reply_queue = Queue()
+        self.pruner_command_queue = Queue()
+        self.pruner_reply_queue = Queue()
+        self.offline_command_queue = Queue()
+        self.offline_reply_queue = Queue()
     
     
     def stop_location_thread(self):
@@ -333,6 +349,20 @@ class ThreadManager:
                 self.bluetooth_command_queue.put(BluetoothCommand(BluetoothCommand.STOP, None))
                 bluetooth_thread.join()
     
+    def stop_pruner_thread(self):
+        if self.thread_running(self.pruner_name):
+            pruner_thread = self.get_thread(self.pruner_name)
+            if pruner_thread is not None:
+                self.pruner_command_queue.put(OfflinePrunerCommand(OfflinePrunerCommand.STOP, None))
+                pruner_thread.join()
+    
+    def stop_offline_thread(self):
+        if self.thread_running(self.offline_name):
+            offline_thread = self.get_thread(self.offline_name)
+            if offline_thread is not None:
+                self.offline_command_queue.put(OfflineCommand(OfflineCommand.STOP, None))
+                offline_thread.join()
+    
     def start_location_thread(self):
         location_data_thread = LocationDataThread(self.lat, self.lon, self.tide_time_collection, self.tide_time_collection_lock,
                                                   self.location_command_queue, self.location_reply_queue,
@@ -365,6 +395,20 @@ class ThreadManager:
         bluetooth_thread = BluetoothThread(self.bluetooth_command_queue, self.bluetooth_reply_queue, self.config,
                                            name=self.bluetooth_name)
         bluetooth_thread.start()
+    
+    def start_pruner_thread(self):
+        pruner_thread = OfflinePrunerThread(self.pruner_command_queue, self.pruner_reply_queue, self.xml_lock, name=self.pruner_name)
+        pruner_thread.start()
+    
+    
+    def start_offline_thread(self):
+        offline_thread = OfflineThread(self.offline_command_queue,
+                                       self.offline_reply_queue,
+                                       self.xml_lock,
+                                       self.tide_time_collection,
+                                       self.tide_time_collection_lock,
+                                       name=self.offline_name)
+        offline_thread.start()
     
     def reset(self):
         self.stop_location_thread()
@@ -412,6 +456,10 @@ class ThreadManager:
         self.stop_ldr_thread()
         print("Stopping bluetooth thread")
         self.stop_bluetooth_thread()
+        print("Stopping pruner thread")
+        self.stop_pruner_thread()
+        print("Stopping offline thread")
+        self.stop_offline_thread()
         print("Cleaning up GPIO")
         GPIO.cleanup()
         print("Shutting down the tide light program")
