@@ -5,12 +5,11 @@ from LedDirection import LedDirection
 
 
 class LightingThread(Thread):
-    def __init__(self, tide_time_collection, tide_time_collection_lock, LED_COUNT, led_queue, offline_mode,
+    def __init__(self, tide_time_collection, tide_time_collection_lock, LED_COUNT, led_queue,
                  command_queue, reply_quene, name=None):
         super().__init__(name=name)
         self.reply_quene = reply_quene
         self.command_queue = command_queue
-        self.offline_mode = offline_mode
         self.led_queue = led_queue
         self.LED_COUNT = LED_COUNT
         self.tide_time_collection_lock = tide_time_collection_lock
@@ -22,6 +21,7 @@ class LightingThread(Thread):
         self.is_stopping = False
 
     def run(self):
+        #TODO closer look at red blink
         next_run = 0
         while not self.is_stopping:
             if datetime.now().timestamp() > next_run:
@@ -29,10 +29,10 @@ class LightingThread(Thread):
                     #print("Light acquire")
                     if self.tide_time_collection.is_empty():
                         self.tide_time_collection_lock.notify_all()
-                        if self.offline_mode:
+                        """if self.offline_mode:
                             # TODO red blink
                             self.reply_quene.put(LightingReply(LightingReply.XMLERROR, None))
-                            print('XML error tide_time_collection is empty')
+                            print('XML error tide_time_collection is empty')"""
                         #print("Light release")
                     else:
                         now = datetime.now().timestamp()
@@ -41,10 +41,10 @@ class LightingThread(Thread):
                         if time_stamp_collection is None and self.error_count == 4:
                             self.tide_time_collection_lock.notify_all()
                             self.error_count += 1
-                            if self.offline_mode:
+                            """if self.offline_mode:
                                 # TODO red blink
                                 print('XML error time_stamp_collection is None')
-                                self.reply_quene.put(LightingReply(LightingReply.XMLERROR, None))
+                                self.reply_quene.put(LightingReply(LightingReply.XMLERROR, None))"""
                             #print("Light release")
                         else:
                             self.error_count = 0

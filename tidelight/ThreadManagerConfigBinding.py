@@ -53,13 +53,8 @@ class ThreadManagerConfigBinding(Config):
     def setMovingPattern(self, movingPattern):
         new_moving_pattern = super().setMovingPattern(movingPattern)
         self.thread_manager.change_moving_pattern(new_moving_pattern)
-    
-    def setOfflineMode(self, mode):
-        new_mode = super().setOfflineMode(mode)
-        self.thread_manager.change_offline_mode(ast.literal_eval(mode))
-    
-    def updateOfflineData(self):
-        self.thread_manager.update_offline_data()
+
+
     
     def reset(self):
         super().reset()

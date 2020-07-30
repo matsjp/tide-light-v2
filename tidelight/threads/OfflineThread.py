@@ -54,6 +54,7 @@ class OfflineThread(Thread):
                             now = datetime.now().timestamp()
                             print("adding data to tide time collection")
                             self.tide_time_collection.insert_tide_times(coll, now)
+                            #TODO
                             if self.tide_time_collection.is_empty():
                                 pass
                                 #self._xml_error(None)

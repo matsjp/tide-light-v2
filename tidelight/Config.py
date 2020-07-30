@@ -26,11 +26,6 @@ movingPatterns = {
     0x2: 'regular'
 }
 
-offlineModeStates = {
-    0x1: 'True',
-    0x2: 'False'
-}
-
 
 class Config():
     def __init__(self):
@@ -192,17 +187,7 @@ class Config():
         self.writeConfig(config)
         return movingSpeed
 
-    def getOfflineMode(self):
-        config = self._getConfig()
-        return config.get('offline', 'offline_mode')
 
-    def setOfflineMode(self, mode):
-        if mode != 'True' and mode != 'False':
-            raise ValueError('mode must be "True" or "False"')
-        config = self._getConfig()
-        config.set('offline', 'offline_mode', mode)
-        self.writeConfig(config)
-        return mode
 
     def validateColor(self, color):
         regex = '^\[([0-9]|[1-8][0-9]|9[0-9]|1[0-9]{' \
@@ -276,15 +261,11 @@ class Config():
             'moving_pattern': 'wave',
             'moving_speed': '0.5',
         }
-        offline = {
-            'offline_mode': 'False'
-        }
         config = configparser.ConfigParser()
         config['apivalues'] = apivalues
         config['ledstrip'] = ledstrip
         config['ldr'] = ldr
         config['color'] = color
-        config['offline'] = offline
 
         config.write(open(configPath, 'w+'))
     
@@ -346,7 +327,6 @@ class Config():
         ldr_pin = ast.literal_eval(config.get('ldr', 'ldr_pin'))
         ldr_active = ast.literal_eval(config.get('ldr', 'ldr_active'))
 
-        offline_mode = ast.literal_eval(config.get('offline', 'offline_mode'))
 
         # TODO: make excaptions for all these possible errors
         color_format = config.get('color', 'color_format')

@@ -26,6 +26,7 @@ def get_next_api_run():
 def get_time_in_30s():
     return (datetime.now() + timedelta(seconds=30)).timestamp()
 
+
 def get_time_in_1day():
     return (datetime.now() + timedelta(days=1)).timestamp()
 
@@ -44,9 +45,11 @@ def get_TideTimeCollection_from_xml_string(xml_string):
 
     return tide_times
 
+
 def color_string_to_color(color_string):
     color = json.loads(color_string)
     return Color(color[0], color[1], color[2])
+
 
 def colors_string_to_list(colors_string):
     colors_list = json.loads(colors_string)
@@ -54,4 +57,21 @@ def colors_string_to_list(colors_string):
     for c in colors_list:
         colors.append(c[0], c[1], c[2])
     return colors
-    
+
+
+def internetConnection():
+    # TODO implement this
+    return True
+
+
+def color_converter(color):
+    color_list = json.loads(color)
+    return Color(color_list[0], color_list[1], color_list[2])
+
+
+def colors_converter(colors):
+    temp_colors_list = json.loads(colors)
+    colors_list = []
+    for color in temp_colors_list:
+        colors_list.append(Color(color[0], color[1], color[2]))
+    return colors_list
