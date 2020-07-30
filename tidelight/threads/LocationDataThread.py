@@ -1,3 +1,4 @@
+import os
 import sys
 import time
 from threading import Thread
@@ -10,10 +11,11 @@ from util import TideTime, get_next_api_run, get_time_in_30s, get_next_time_to, 
 
 
 class LocationDataThread(Thread):
-    def __init__(self, lat, lon, tide_time_collection, tide_time_collection_lock, command_queue, reply_quene, name=None):
+    def __init__(self, lat, lon, tide_time_collection, tide_time_collection_lock, command_queue, reply_quene, xml_lock, name=None):
         super().__init__(name=name)
         self.reply_quene = reply_quene
         self.command_queue = command_queue
+        self.xml_lock = xml_lock
         self.tide_time_collection_lock = tide_time_collection_lock
         self.tide_time_collection = tide_time_collection
         self.lon = lon
@@ -29,11 +31,10 @@ class LocationDataThread(Thread):
         while not self.is_stopping:
             if next_run < datetime.now().timestamp():
                 print('Before acquiring')
-                with self.tide_time_collection_lock:
+                with self.xml_lock:
                     print("Location acquire")
                     if datetime.now().timestamp() < next_run:
                         print('too early')
-                        self.tide_time_collection_lock.notify_all()
                         print("Location release: too early")
                     else:
                         print('Going to try sending request')
@@ -42,29 +43,24 @@ class LocationDataThread(Thread):
                             response = self.api.get_location_data(self.lon, self.lat, get_next_time_from(),
                                                                   get_next_time_to(), 'TAB')
 
-                            print(response)
                             # TODO handle parsing exceptions
                             parser = LocationDataParser(response)
                             waterlevels = parser.parse_response()['data']
-                            coll = []
-                            for waterlevel in waterlevels:
-                                # TODO what to do if tide is None
-                                tide = waterlevel.tide
-                                timestring = waterlevel.time
-                                timestring = timestring[:len(timestring) - 3] + timestring[len(timestring) - 2:]
-                                timestamp = datetime.strptime(timestring, "%Y-%m-%dT%H:%M:%S%z").timestamp()
-                                # TODO figure out difference between time and timestamp. Why didn't past myself properly document that
-                                coll.append(TideTime(tide=tide, timestamp=timestamp, time=timestring))
+                            if waterlevels is not None:
+                                if len(waterlevels) != 0:
+                                    try:
+                                        with open("download.xml", "w+") as xmlfile:
+                                            xmlfile.write(response)
+                                        if os.path.exists("offline.xml"):
+                                            os.remove("offline.xml")
+                                        os.rename("download.xml", "offline.xml")
+                                    except Exception as e:
+                                        print(e)
 
-                            now = datetime.now().timestamp()
 
-                            self.tide_time_collection.insert_tide_times(coll, now)
-
-                            self.tide_time_collection_lock.notify_all()
                             print("Location release: waiting for next data download time")
                             next_run = get_next_api_run()
                         except requests.exceptions.Timeout as e:
-                            self.tide_time_collection_lock.notify_all()
                             print(e)
                             print('Connection timeout')
                             print("Location release: 30s timeout")
@@ -88,6 +84,7 @@ class LocationDataThread(Thread):
                             print("Error occured: ", sys.exc_info()[0])
                             print('Location release: 30s unknown error')
                             next_run = get_time_in_30s()
+                    self.xml_lock.notify_all()
 
             if not self.command_queue.empty():
                 command = self.command_queue.get()

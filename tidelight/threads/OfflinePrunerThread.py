@@ -89,9 +89,11 @@ class OfflinePrunerThread(Thread):
                         try:
                             with open("prune.xml", "w+") as xmlfile:
                                 xmlfile.write(prunedXmlString)
+                            if os.path.exists("offline.xml"):
+                                os.remove("offline.xml")
                             os.rename("prune.xml", "offline.xml")
                         except Exception as e:
-                                print(e)
+                            print(e)
                             
                     next_run = get_time_in_1day()
                     self.xml_lock.notify_all()

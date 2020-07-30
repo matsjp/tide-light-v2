@@ -83,15 +83,15 @@ class ThreadManager:
             self.strip.show()
         print('starting bluetooth thread')
         self.start_bluetooth_thread()
-        if self.offline_mode:
-            print('starting offline mode thread')
-            #self.offline_tide_data()
-            self.start_offline_thread()
-        else:
-            print('starting location data thread')
-            self.start_location_thread()
+        print('starting offline mode thread')
+        self.start_offline_thread()
+        time.sleep(0.5)
+        print('starting location data thread')
+        self.start_location_thread()
+        time.sleep(0.5)
         print('starting lighting thread')
         self.start_lighting_thread()
+        time.sleep(0.5)
         print('starting controller thread')
         self.start_controller_thread()
         if self.ldr_active:
@@ -365,7 +365,7 @@ class ThreadManager:
     
     def start_location_thread(self):
         location_data_thread = LocationDataThread(self.lat, self.lon, self.tide_time_collection, self.tide_time_collection_lock,
-                                                  self.location_command_queue, self.location_reply_queue,
+                                                  self.location_command_queue, self.location_reply_queue, self.xml_lock,
                                                   name=self.location_name)
         location_data_thread.start()
     

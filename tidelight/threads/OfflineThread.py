@@ -26,7 +26,9 @@ class OfflineThread(Thread):
         while not self.is_stopping:
             if next_run < datetime.now().timestamp():
                 with self.xml_lock:
+                    print("Offline: xml lock aquired")
                     with self.tide_time_collection_lock:
+                        print("Offline: collection lock aquired")
                         try:
                             with open('offline.xml', 'r') as xmlfile:
                                 print("Starting to read file")

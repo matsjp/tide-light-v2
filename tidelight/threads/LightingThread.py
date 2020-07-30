@@ -15,6 +15,7 @@ class LightingThread(Thread):
         self.LED_COUNT = LED_COUNT
         self.tide_time_collection_lock = tide_time_collection_lock
         self.tide_time_collection = tide_time_collection
+        self.error_count = 0
         self.handlers = {
             LightingCommand.STOP: self.stop
         }
@@ -37,14 +38,16 @@ class LightingThread(Thread):
                         now = datetime.now().timestamp()
                         # TODO: better variable name
                         time_stamp_collection = self.tide_time_collection.get_timestamp_collection(now)
-                        if time_stamp_collection is None:
+                        if time_stamp_collection is None and self.error_count == 4:
                             self.tide_time_collection_lock.notify_all()
+                            self.error_count += 1
                             if self.offline_mode:
                                 # TODO red blink
                                 print('XML error time_stamp_collection is None')
                                 self.reply_quene.put(LightingReply(LightingReply.XMLERROR, None))
                             #print("Light release")
                         else:
+                            self.error_count = 0
                             timestamp = time_stamp_collection[0]
                             led = time_stamp_collection[1]
                             direction = time_stamp_collection[2]
@@ -63,7 +66,7 @@ class LightingThread(Thread):
             if not self.command_queue.empty():
                 command = self.command_queue.get()
                 self.handle_command(command)
-            time.sleep(1)
+            time.sleep(5)
         print('Lighting thread shutting down')
 
     def stop(self, data):

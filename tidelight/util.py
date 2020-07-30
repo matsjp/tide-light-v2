@@ -15,7 +15,7 @@ def get_next_time_from():
 
 
 def get_next_time_to():
-    time = datetime.now() + timedelta(days=7)
+    time = datetime.now() + timedelta(days=1000)
     return time.strftime("%Y-%m-%dT%H:%M")
 
 
