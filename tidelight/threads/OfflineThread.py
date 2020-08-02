@@ -17,7 +17,8 @@ class OfflineThread(Thread):
         self.reply_queue = reply_queue
         self.is_stopping = False
         self.handlers = {
-            OfflineCommand.STOP: self.stop
+            OfflineCommand.STOP: self.stop,
+            OfflineCommand.UPDATE_DATA: self.update_data
         }
         
     
@@ -91,6 +92,64 @@ class OfflineThread(Thread):
     def stop(self, data):
         self.is_stopping = True
     
+    def update_data(self, data):
+        with self.xml_lock:
+            print("Offline: xml lock aquired")
+            with self.tide_time_collection_lock:
+                self.tide_time_collection.clear()
+                print("Offline: collection lock aquired")
+                try:
+                    with open('offline.xml', 'r') as xmlfile:
+                        print("Starting to read file")
+                        xml = xmlfile.read()
+                        print("done reading file")
+                    parser = LocationDataParser(xml)
+                    print("parsing data")
+                    waterlevels = parser.parse_response()['data']
+                    print("done parsing")
+                    coll = []
+                    time_threshold = (datetime.now() + timedelta(days=7)).timestamp()
+                    
+                    print("adding data to coll")
+                    for waterlevel in waterlevels:
+                        tide = waterlevel.tide
+                        timestring = waterlevel.time
+                        timestring = timestring[:len(timestring) - 3] + timestring[len(timestring) - 2:]
+                        timestamp = datetime.strptime(timestring, "%Y-%m-%dT%H:%M:%S%z").timestamp()
+                        if timestamp < time_threshold:
+                            coll.append(TideTime(tide=tide, timestamp=timestamp, time=timestring))
+                    print("done")
+
+                    now = datetime.now().timestamp()
+                    print("adding data to tide time collection")
+                    self.tide_time_collection.insert_tide_times(coll, now)
+                    #TODO
+                    if self.tide_time_collection.is_empty():
+                        pass
+                        #self._xml_error(None)
+                    self.tide_time_collection_lock.notify_all()
+                    print("offline data ready")
+                except FileNotFoundError as e:
+                    print(e)
+                    #self._xml_error(None)
+                    self.tide_time_collection_lock.notify_all()
+                except ParseError as e:
+                    print(e)
+                    #self._xml_error(None)
+                    self.tide_time_collection_lock.notify_all()
+                except CannotFindElementException as e:
+                    print(e)
+                    #self._xml_error(None)
+                    self.tide_time_collection_lock.notify_all()
+                except Exception as e:
+                    print(e)
+                    #self._xml_error(None)
+                    self.tide_time_collection_lock.notify_all()
+            
+            
+            self.xml_lock.notify_all()
+        self.reply_queue.put(OfflineReply(OfflineReply.UPDATE_DATA, None))
+        
 
     def handle_command(self, command):
         self.handlers[command.command_type](command.data)
@@ -98,7 +157,7 @@ class OfflineThread(Thread):
 
 
 class OfflineCommand:
-    STOP = range(1)
+    STOP, UPDATE_DATA = range(2)
 
     def __init__(self, command_type, data):
         self.data = data
@@ -106,6 +165,7 @@ class OfflineCommand:
 
 
 class OfflineReply:
+    UPDATE_DATA = range(1)
     def __init__(self, reply_type, data):
         self.data = data
         self.reply_type = reply_type

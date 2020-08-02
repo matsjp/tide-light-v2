@@ -10,9 +10,9 @@ from TideTimeCollection import TideTimeCollection
 from threads.BluetoothThread import BluetoothThread, BluetoothCommand
 from threads.LdrThread import LdrThread, LdrCommand
 from threads.LightingThread import LightingThread, LightingReply, LightingCommand
-from threads.LocationDataThread import LocationDataThread, LocationCommand
+from threads.LocationDataThread import LocationDataThread, LocationCommand, LocationReply
 from threads.OfflinePrunerThread import OfflinePrunerThread, OfflinePrunerCommand
-from threads.OfflineThread import OfflineThread, OfflineCommand
+from threads.OfflineThread import OfflineThread, OfflineCommand, OfflineReply
 from threads.StripControllerThread import StripControllerThread, ControllerCommand
 from util import *
 from utils.threadUtils import *
@@ -34,7 +34,7 @@ class ThreadManager:
                 LightingReply.XMLERROR: self._xml_error
             },
             ThreadManager.LOCATIONHANDLERS: {
-
+                LocationReply.LOCATION_UPDATE: self.location_update
             },
             ThreadManager.LDRHANDLERS: {
 
@@ -49,6 +49,7 @@ class ThreadManager:
             ThreadManager.PRUNERHANDLERS: {
             },
             ThreadManager.OFFLINEHANDLERS: {
+                OfflineReply.UPDATE_DATA: self.offline_data_update
             }
         }
         self.strip = TideLightLedStrip(self.LED_COUNT, self.LED_PIN, self.LED_FREQ_HZ, self.LED_DMA, self.LED_INVERT,
@@ -99,6 +100,12 @@ class ThreadManager:
             if not self.lighting_reply_queue.empty():
                 reply = self.lighting_reply_queue.get()
                 self.handle_reply(reply, ThreadManager.LIGHTINGHANDLERS)
+            if not self.location_reply_queue.empty():
+                reply = self.location_reply_queue.get()
+                self.handle_reply(reply, ThreadManager.LOCATIONHANDLERS)
+            if not self.offline_reply_queue.empty():
+                reply = self.offline_reply_queue.get()
+                self.handle_reply(reply, ThreadManager.OFFLINEHANDLERS)
 
             time.sleep(5)
 
@@ -108,23 +115,23 @@ class ThreadManager:
     def _xml_error(self, data):
         self.stop_lighting_thread()
         self.change_moving_pattern('red_blink')
+    
+    def location_update(self, data):
+        self.offline_command_queue.put(OfflineCommand(OfflineCommand.UPDATE_DATA, None))
+    
+    def offline_data_update(self, data):
+        self.stop_controller_thread()
+        self.stop_lighting_thread()
+        self.start_lighting_thread()
+        self.start_controller_thread()
 
     def change_lat_lon(self, new_lat, new_lon):
         if new_lat != self.lat or new_lon != self.lon:
             self.lat = new_lat
             self.lon = new_lon
+            #TODO check internet connection earlier. In the bluetooth characteristic. Error if no internet
             if internetConnection():
-                self.stop_location_thread()
-                self.stop_controller_thread()
-                self.stop_lighting_thread()
-                self.stop_offline_thread()
-                self.tide_time_collection.clear()
-                self.start_location_thread()
-                time.sleep(0.5)
-                self.start_controller_thread()
-                time.sleep(0.5)
-                self.start_lighting_thread()
-                self.start_offline_thread()
+                self.location_command_queue.put(LocationCommand(LocationCommand.LOCATION_UPDATE, {'lat': self.lat, 'lon': self.lon}))
 
     def change_moving_pattern(self, new_moving_pattern):
         if self.moving_pattern != new_moving_pattern:

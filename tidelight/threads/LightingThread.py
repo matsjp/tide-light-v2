@@ -8,6 +8,7 @@ class LightingThread(Thread):
     def __init__(self, tide_time_collection, tide_time_collection_lock, LED_COUNT, led_queue,
                  command_queue, reply_quene, name=None):
         super().__init__(name=name)
+        self.next_run = 0
         self.reply_quene = reply_quene
         self.command_queue = command_queue
         self.led_queue = led_queue
@@ -16,15 +17,15 @@ class LightingThread(Thread):
         self.tide_time_collection = tide_time_collection
         self.error_count = 0
         self.handlers = {
-            LightingCommand.STOP: self.stop
+            LightingCommand.STOP: self.stop,
+            LightingCommand.UPDATE_DATA: self.update_data
         }
         self.is_stopping = False
 
     def run(self):
         #TODO closer look at red blink
-        next_run = 0
         while not self.is_stopping:
-            if datetime.now().timestamp() > next_run:
+            if datetime.now().timestamp() > self.next_run:
                 with self.tide_time_collection_lock:
                     #print("Light acquire")
                     if self.tide_time_collection.is_empty():
@@ -61,7 +62,7 @@ class LightingThread(Thread):
                             self.led_queue.put(LedDirection(led, direction))
                             self.tide_time_collection_lock.notify_all()
                             #print("Light release")
-                            next_run = timestamp
+                            self.next_run = timestamp
                             #print(next_run)
             if not self.command_queue.empty():
                 command = self.command_queue.get()
@@ -71,13 +72,16 @@ class LightingThread(Thread):
 
     def stop(self, data):
         self.is_stopping = True
+    
+    def update_data(self, data):
+        self.next_run = 0
 
     def handle_command(self, command):
         self.handlers[command.command_type](command.data)
 
 
 class LightingCommand:
-    STOP = range(1)
+    STOP, UPDATE_DATA = range(2)
 
     def __init__(self, command_type, data):
         self.data = data
