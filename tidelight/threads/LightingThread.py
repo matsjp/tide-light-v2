@@ -6,10 +6,9 @@ from LedDirection import LedDirection
 
 class LightingThread(Thread):
     def __init__(self, tide_time_collection, tide_time_collection_lock, LED_COUNT, led_queue,
-                 command_queue, reply_quene, name=None):
+                 command_queue, name=None):
         super().__init__(name=name)
         self.next_run = 0
-        self.reply_quene = reply_quene
         self.command_queue = command_queue
         self.led_queue = led_queue
         self.LED_COUNT = LED_COUNT
@@ -86,11 +85,3 @@ class LightingCommand:
     def __init__(self, command_type, data):
         self.data = data
         self.command_type = command_type
-
-
-class LightingReply:
-    XMLERROR = range(1)
-
-    def __init__(self, reply_type, data):
-        self.data = data
-        self.reply_type = reply_type

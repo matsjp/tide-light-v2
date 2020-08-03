@@ -10,9 +10,8 @@ class StripControllerThread(Thread):
                  tide_level_indicator_color,
                  no_tide_level_indicator_color, tide_level_indicator_moving_colors,
                  no_tide_level_indicator_moving_colors, led_queue, moving_pattern,
-                 led_count, moving_speed, command_queue, reply_quene, name=None):
+                 led_count, moving_speed, command_queue, name=None):
         super().__init__(name=name)
-        self.reply_quene = reply_quene
         self.command_queue = command_queue
         self.moving_speed = moving_speed
         self.tide_level_indicator_moving_colors = tide_level_indicator_moving_colors
@@ -246,8 +245,3 @@ class ControllerCommand:
         self.data = data
         self.command_type = command_type
 
-
-class ControllerReply:
-    def __init__(self, reply_type, data):
-        self.data = data
-        self.reply_type = reply_type

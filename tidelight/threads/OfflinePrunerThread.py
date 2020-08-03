@@ -11,11 +11,10 @@ import xml.etree.ElementTree as ElementTree
 import os
 
 class OfflinePrunerThread(Thread):
-    def __init__(self, command_queue, reply_queue, xml_lock, name=None):
+    def __init__(self, command_queue, xml_lock, name=None):
         super().__init__(name=name)
         self.xml_lock = xml_lock
         self.command_queue = command_queue
-        self.reply_queue = reply_queue
         self.is_stopping = False
         self.handlers = {
             OfflinePrunerCommand.STOP: self.stop
@@ -133,11 +132,6 @@ class OfflinePrunerCommand:
         self.data = data
         self.command_type = command_type
 
-
-class OfflinePrunerReply:
-    def __init__(self, reply_type, data):
-        self.data = data
-        self.reply_type = reply_type
 
 
     

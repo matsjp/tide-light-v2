@@ -6,9 +6,8 @@ from RPi import GPIO
 
 
 class LdrThread(Thread):
-    def __init__(self, ldr_pin, brightness, max_brightness, strip, strip_lock, command_queue, reply_quene, name=None):
+    def __init__(self, ldr_pin, brightness, max_brightness, strip, strip_lock, command_queue, name=None):
         super().__init__(name=name)
-        self.reply_quene = reply_quene
         self.command_queue = command_queue
         self.ldr_pin = ldr_pin
         self.brightness = brightness
@@ -92,8 +91,6 @@ class LdrThread(Thread):
     def handle_command(self, command):
         self.handlers[command.command_type](command.data)
 
-    def handle_reply(self, reply, handler):
-        self.handlers[handler][reply.reply_type](reply.data)
 
 
 class LdrCommand:
@@ -102,9 +99,3 @@ class LdrCommand:
     def __init__(self, command_type, data):
         self.data = data
         self.command_type = command_type
-
-
-class LdrReply:
-    def __init__(self, reply_type, data):
-        self.data = data
-        self.reply_type = reply_type

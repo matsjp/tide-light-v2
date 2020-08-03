@@ -8,11 +8,12 @@ from ThreadManagerConfigBinding import ThreadManagerConfigBinding
 from TideLightLedStrip import TideLightLedStrip
 from TideTimeCollection import TideTimeCollection
 from threads.BluetoothThread import BluetoothThread, BluetoothCommand
+from threads.CommandThread import CommandThread
 from threads.LdrThread import LdrThread, LdrCommand
-from threads.LightingThread import LightingThread, LightingReply, LightingCommand
-from threads.LocationDataThread import LocationDataThread, LocationCommand, LocationReply
+from threads.LightingThread import LightingThread, LightingCommand
+from threads.LocationDataThread import LocationDataThread, LocationCommand
 from threads.OfflinePrunerThread import OfflinePrunerThread, OfflinePrunerCommand
-from threads.OfflineThread import OfflineThread, OfflineCommand, OfflineReply
+from threads.OfflineThread import OfflineThread, OfflineCommand
 from threads.StripControllerThread import StripControllerThread, ControllerCommand
 from util import *
 from utils.threadUtils import *
@@ -31,10 +32,10 @@ class ThreadManager:
 
         self.handlers = {
             ThreadManager.LIGHTINGHANDLERS: {
-                LightingReply.XMLERROR: self._xml_error
+                #LightingReply.XMLERROR: self._xml_error
             },
             ThreadManager.LOCATIONHANDLERS: {
-                LocationReply.LOCATION_UPDATE: self.location_update
+                #LocationReply.LOCATION_UPDATE: self.location_update
             },
             ThreadManager.LDRHANDLERS: {
 
@@ -49,7 +50,7 @@ class ThreadManager:
             ThreadManager.PRUNERHANDLERS: {
             },
             ThreadManager.OFFLINEHANDLERS: {
-                OfflineReply.UPDATE_DATA: self.offline_data_update
+                #OfflineReply.UPDATE_DATA: self.offline_data_update
             }
         }
         self.strip = TideLightLedStrip(self.LED_COUNT, self.LED_PIN, self.LED_FREQ_HZ, self.LED_DMA, self.LED_INVERT,
@@ -60,6 +61,7 @@ class ThreadManager:
         self.led_queue = Queue()
         self.tide_time_collection = TideTimeCollection(self.LED_COUNT)
         self.tide_time_collection_lock = threading.Condition()
+        self.quick = False
 
         self.lighting_name = 'lighting'
         self.bluetooth_name = 'bluetooth'
@@ -96,6 +98,9 @@ class ThreadManager:
             self.start_ldr_thread()
         print("starting pruner thread")
         self.start_pruner_thread()
+        self.command_reply_queue = Queue()
+        command_thread = CommandThread(self.command_reply_queue, self)
+        command_thread.start()
         while not self.shutdown:
             if not self.lighting_reply_queue.empty():
                 reply = self.lighting_reply_queue.get()
@@ -112,18 +117,6 @@ class ThreadManager:
     def handle_reply(self, reply, handler):
         self.handlers[handler][reply.reply_type](reply.data)
 
-    def _xml_error(self, data):
-        self.stop_lighting_thread()
-        self.change_moving_pattern('red_blink')
-    
-    def location_update(self, data):
-        self.offline_command_queue.put(OfflineCommand(OfflineCommand.UPDATE_DATA, None))
-    
-    def offline_data_update(self, data):
-        self.stop_controller_thread()
-        self.stop_lighting_thread()
-        self.start_lighting_thread()
-        self.start_controller_thread()
 
     def change_lat_lon(self, new_lat, new_lon):
         if new_lat != self.lat or new_lon != self.lon:
@@ -131,7 +124,9 @@ class ThreadManager:
             self.lon = new_lon
             #TODO check internet connection earlier. In the bluetooth characteristic. Error if no internet
             if internetConnection():
-                self.location_command_queue.put(LocationCommand(LocationCommand.LOCATION_UPDATE, {'lat': self.lat, 'lon': self.lon}))
+                print("updating location")
+                self.quick = True
+                self.location_command_queue.put(LocationCommand(LocationCommand.LOCATION_UPDATE_QUICK, {'lat': self.lat, 'lon': self.lon}))
 
     def change_moving_pattern(self, new_moving_pattern):
         if self.moving_pattern != new_moving_pattern:
@@ -299,20 +294,20 @@ class ThreadManager:
     def start_location_thread(self):
         location_data_thread = LocationDataThread(self.lat, self.lon, self.tide_time_collection,
                                                   self.tide_time_collection_lock,
-                                                  self.location_command_queue, self.location_reply_queue, self.xml_lock,
+                                                  self.location_command_queue, self.xml_lock, self,
                                                   name=self.location_name)
         location_data_thread.start()
 
     def start_lighting_thread(self):
         lighting_thread = LightingThread(self.tide_time_collection, self.tide_time_collection_lock, self.LED_COUNT,
                                          self.led_queue,
-                                         self.lighting_command_queue, self.lighting_reply_queue,
+                                         self.lighting_command_queue,
                                          name=self.lighting_name)
         lighting_thread.start()
 
     def start_ldr_thread(self):
         ldr_thread = LdrThread(self.ldr_pin, self.LED_BRIGHTNESS, self.LED_BRIGHTNESS, self.strip, self.strip_lock,
-                               self.ldr_command_queue, self.ldr_reply_queue, name=self.ldr_name)
+                               self.ldr_command_queue, name=self.ldr_name)
         ldr_thread.start()
 
     def start_controller_thread(self):
@@ -323,25 +318,25 @@ class ThreadManager:
                                                   self.no_tide_level_indicator_moving_colors, self.led_queue,
                                                   self.moving_pattern,
                                                   self.LED_COUNT, self.moving_speed, self.controller_command_queue,
-                                                  self.controller_reply_queue, name=self.controller_name)
+                                                  name=self.controller_name)
         controller_thread.start()
 
     def start_bluetooth_thread(self):
-        bluetooth_thread = BluetoothThread(self.bluetooth_command_queue, self.bluetooth_reply_queue, self.config,
+        bluetooth_thread = BluetoothThread(self.bluetooth_command_queue, self.config,
                                            name=self.bluetooth_name)
         bluetooth_thread.start()
 
     def start_pruner_thread(self):
-        pruner_thread = OfflinePrunerThread(self.pruner_command_queue, self.pruner_reply_queue, self.xml_lock,
+        pruner_thread = OfflinePrunerThread(self.pruner_command_queue, self.xml_lock,
                                             name=self.pruner_name)
         pruner_thread.start()
 
     def start_offline_thread(self):
         offline_thread = OfflineThread(self.offline_command_queue,
-                                       self.offline_reply_queue,
                                        self.xml_lock,
                                        self.tide_time_collection,
                                        self.tide_time_collection_lock,
+                                       self,
                                        name=self.offline_name)
         offline_thread.start()
 
@@ -396,3 +391,37 @@ class ThreadManager:
         GPIO.cleanup()
         print("Shutting down the tide light program")
         self.shutdown = True
+
+    def xml_error(self):
+        self.stop_lighting_thread()
+        self.change_moving_pattern('red_blink')
+
+    def location_update_quick(self):
+        print("updating offline data")
+        self.offline_command_queue.put(OfflineCommand(OfflineCommand.UPDATE_DATA_QUICK, None))
+
+    def location_update(self):
+        print("updating offline data")
+        self.offline_command_queue.put(OfflineCommand(OfflineCommand.UPDATE_DATA, None))
+
+    def offline_data_update_quick(self):
+        print("stopping controller")
+        self.stop_controller_thread()
+        print("stopping lighting")
+        self.stop_lighting_thread()
+        print("starting lighting")
+        self.start_lighting_thread()
+        print("starting controller")
+        self.start_controller_thread()
+        self.location_command_queue.put(
+            LocationCommand(LocationCommand.LOCATION_UPDATE, {'lat': self.lat, 'lon': self.lon}))
+
+    def offline_data_update(self):
+        print("stopping controller")
+        self.stop_controller_thread()
+        print("stopping lighting")
+        self.stop_lighting_thread()
+        print("starting lighting")
+        self.start_lighting_thread()
+        print("starting controller")
+        self.start_controller_thread()

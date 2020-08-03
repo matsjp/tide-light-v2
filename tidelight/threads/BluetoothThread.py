@@ -4,10 +4,9 @@ from bluetooth.peripheral import Peripheral
 
 
 class BluetoothThread(Thread):
-    def __init__(self, command_queue, reply_quene, threadManagerConfigBinding, name=None):
+    def __init__(self, command_queue, threadManagerConfigBinding, name=None):
         super().__init__(name=name)
         self.threadManagerConfigBinding = threadManagerConfigBinding
-        self.reply_quene = reply_quene
         self.command_queue = command_queue
         self.is_stopping = False
         self.handlers = {
@@ -37,9 +36,3 @@ class BluetoothCommand:
     def __init__(self, command_type, data):
         self.data = data
         self.command_type = command_type
-
-
-class BluetoothReply:
-    def __init__(self, reply_type, data):
-        self.data = data
-        self.reply_type = reply_type
