@@ -105,11 +105,8 @@ class LocationDataThread(Thread):
                 fromtime = get_next_time_from()
                 totime = datetime.now() + timedelta(days=1)
                 totime = totime.strftime("%Y-%m-%dT%H:%M")
-                print(fromtime)
-                print(totime)
                 response = self.api.get_location_data(self.lon, self.lat, fromtime,
                                                       totime, 'TAB')
-                print(response)
 
                 # TODO handle parsing exceptions
                 parser = LocationDataParser(response)
@@ -169,11 +166,8 @@ class LocationDataThread(Thread):
                 print("sending request")
                 fromtime = get_next_time_from()
                 totime = get_next_time_to()
-                print(fromtime)
-                print(totime)
                 response = self.api.get_location_data(self.lon, self.lat, fromtime,
                                                       totime, 'TAB')
-                print(response)
 
                 # TODO handle parsing exceptions
                 parser = LocationDataParser(response)

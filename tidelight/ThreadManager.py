@@ -7,6 +7,7 @@ import RPi.GPIO as GPIO
 from ThreadManagerConfigBinding import ThreadManagerConfigBinding
 from TideLightLedStrip import TideLightLedStrip
 from TideTimeCollection import TideTimeCollection
+from bluetooth.peripheral import Peripheral
 from threads.BluetoothThread import BluetoothThread, BluetoothCommand
 from threads.CommandThread import CommandThread
 from threads.LdrThread import LdrThread, LdrCommand
@@ -17,15 +18,16 @@ from threads.OfflineThread import OfflineThread, OfflineCommand
 from threads.StripControllerThread import StripControllerThread, ControllerCommand
 from util import *
 from utils.threadUtils import *
+import array
 
 
 class ThreadManager:
-    # TODO: hardware clock sync over bluetooth
     LIGHTINGHANDLERS, LOCATIONHANDLERS, BLUETOOTHHANDLERS, LDRHANDLERS, CONTROLLERHANDLERS, PRUNERHANDLERS, OFFLINEHANDLERS = range(
         7)
 
     def __init__(self):
         self.config = ThreadManagerConfigBinding(self)
+        self.peripheral = Peripheral(self.config)
         self._read_config_variables()
 
         self._create_thread_queues()
@@ -322,7 +324,7 @@ class ThreadManager:
         controller_thread.start()
 
     def start_bluetooth_thread(self):
-        bluetooth_thread = BluetoothThread(self.bluetooth_command_queue, self.config,
+        bluetooth_thread = BluetoothThread(self.bluetooth_command_queue, self.peripheral,
                                            name=self.bluetooth_name)
         bluetooth_thread.start()
 
@@ -425,3 +427,10 @@ class ThreadManager:
         self.start_lighting_thread()
         print("starting controller")
         self.start_controller_thread()
+
+        lat, lon = self.config.getLatLon()
+        dataString = lat + ':' + lon
+        data = array.array('B', [0] * len(dataString))
+        for i in range(len(dataString)):
+            writeUInt8(data, ord(dataString[i]), i)
+        self.peripheral.configService.latLonCharacteristic.notify(data)

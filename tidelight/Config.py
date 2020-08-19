@@ -1,12 +1,9 @@
-import configparser
 import ast
 import re
+
 from kartverket_tide_api import TideApi
 from kartverket_tide_api.parsers import LocationDataParser
-from datetime import datetime
-from datetime import timedelta
-import ast
-import json
+
 from util import *
 
 configPath = 'config.ini'

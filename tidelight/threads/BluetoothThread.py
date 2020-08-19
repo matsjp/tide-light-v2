@@ -4,15 +4,14 @@ from bluetooth.peripheral import Peripheral
 
 
 class BluetoothThread(Thread):
-    def __init__(self, command_queue, threadManagerConfigBinding, name=None):
+    def __init__(self, command_queue, peripheral, name=None):
         super().__init__(name=name)
-        self.threadManagerConfigBinding = threadManagerConfigBinding
         self.command_queue = command_queue
         self.is_stopping = False
         self.handlers = {
             BluetoothCommand.STOP: self.stop
         }
-        self.peripheral = Peripheral(threadManagerConfigBinding)
+        self.peripheral = peripheral
 
     def run(self):
         self.peripheral.start()

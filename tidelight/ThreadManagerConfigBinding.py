@@ -49,10 +49,6 @@ class ThreadManagerConfigBinding(Config):
     def setMovingSpeed(self, movingSpeed):
         new_moving_speed = super().setMovingSpeed(movingSpeed)
         self.thread_manager.change_moving_speed(new_moving_speed)
-    
-    def setMovingPattern(self, movingPattern):
-        new_moving_pattern = super().setMovingPattern(movingPattern)
-        self.thread_manager.change_moving_pattern(new_moving_pattern)
 
 
     

@@ -9,11 +9,13 @@ class LatLonCharacteristic(Characteristic):
     def __init__(self, config):
         Characteristic.__init__(self, {
             'uuid': 'ec1b',
-            'properties': ['read', 'write'],
+            'properties': ['read', 'write', 'notify'],
             'value': None
           })
           
         self.config = config
+        self._value = None
+        self._updateValueCallback = None
           
     def onReadRequest(self, offset, callback):
         
@@ -25,7 +27,7 @@ class LatLonCharacteristic(Characteristic):
             data = array.array('B', [0] * len(dataString))
             for i in range(len(dataString)):
                 writeUInt8(data, ord(dataString[i]), i)
-            callback(Characteristic.RESULT_SUCCESS, data);
+            callback(Characteristic.RESULT_SUCCESS, data)
 
     def onWriteRequest(self, data, offset, withoutResponse, callback):
         if offset:
@@ -48,6 +50,19 @@ class LatLonCharacteristic(Characteristic):
             except:
                 traceback.print_exc()
                 callback(Characteristic.RESULT_UNLIKELY_ERROR)
+
+    def onSubscribe(self, maxValueSize, updateValueCallback):
+        print('EchoCharacteristic - onSubscribe')
+
+        self._updateValueCallback = updateValueCallback
+
+    def onUnsubscribe(self):
+        print('EchoCharacteristic - onUnsubscribe');
+
+        self._updateValueCallback = None
+
+    def notify(self, data):
+        self._updateValueCallback(data)
 
 
 
