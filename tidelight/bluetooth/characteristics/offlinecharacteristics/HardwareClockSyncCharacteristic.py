@@ -10,7 +10,7 @@ class HardwareClockSyncCharacteristic(Characteristic):
             'properties': ['write', 'read'],
             'value': None
           })
-
+    
     def onWriteRequest(self, data, offset, withoutResponse, callback):
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG)
@@ -38,5 +38,5 @@ class HardwareClockSyncCharacteristic(Characteristic):
             data = array.array('B', [0] * len(date))
             for i in range(len(date)):
                 writeUInt8(data, ord(date[i]), i)
-            callback(Characteristic.RESULT_SUCCESS, data);
+            callback(Characteristic.RESULT_SUCCESS, data)
                     

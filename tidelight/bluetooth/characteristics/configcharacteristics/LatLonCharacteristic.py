@@ -57,11 +57,12 @@ class LatLonCharacteristic(Characteristic):
         self._updateValueCallback = updateValueCallback
 
     def onUnsubscribe(self):
-        print('EchoCharacteristic - onUnsubscribe');
+        print('EchoCharacteristic - onUnsubscribe')
 
         self._updateValueCallback = None
 
     def notify(self, data):
+        print("Sending notification")
         self._updateValueCallback(data)
 
 

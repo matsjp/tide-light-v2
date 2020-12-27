@@ -3,6 +3,9 @@ offline.xml
 config.ini
 *.xml
 
+.vscode
+.venv
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

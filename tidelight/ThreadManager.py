@@ -1,6 +1,7 @@
 import ast
 import time
 from queue import Queue
+from pybleno import *
 
 import RPi.GPIO as GPIO
 
