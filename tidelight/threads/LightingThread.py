@@ -2,7 +2,7 @@ import time
 from threading import Thread
 from datetime import datetime
 from LedDirection import LedDirection
-
+import logging
 
 class LightingThread(Thread):
     def __init__(self, tide_time_collection, tide_time_collection_lock, LED_COUNT, led_queue,
@@ -67,7 +67,7 @@ class LightingThread(Thread):
                 command = self.command_queue.get()
                 self.handle_command(command)
             time.sleep(5)
-        print('Lighting thread shutting down')
+        logging.info('Lighting thread shutting down')
 
     def stop(self, data):
         self.is_stopping = True

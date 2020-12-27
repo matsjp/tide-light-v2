@@ -9,6 +9,7 @@ from kartverket_tide_api.exceptions import CannotFindElementException, NoTideDat
 from kartverket_tide_api.tideobjects import WaterLevel
 import xml.etree.ElementTree as ElementTree
 import os
+import logging
 
 class OfflinePrunerThread(Thread):
     def __init__(self, command_queue, xml_lock, name=None):
@@ -77,13 +78,13 @@ class OfflinePrunerThread(Thread):
                             if prune:
                                 prunedXmlString = ElementTree.tostring(root, encoding='unicode')
                     except FileNotFoundError as e:
-                        print(e)
+                        logging.exception(e)
                     except ParseError as e:
-                        print(e)
+                        logging.exception(e)
                     except CannotFindElementException as e:
-                        print(e)
+                        logging.exception(e)
                     except Exception as e:
-                        print(e)
+                        logging.exception(e)
                     if prune:
                         try:
                             with open("prune.xml", "w+") as xmlfile:
@@ -92,7 +93,7 @@ class OfflinePrunerThread(Thread):
                                 os.remove("offline.xml")
                             os.rename("prune.xml", "offline.xml")
                         except Exception as e:
-                            print(e)
+                            logging.exception(e)
                             
                     next_run = get_time_in_1day()
                     self.xml_lock.notify_all()

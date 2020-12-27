@@ -1,5 +1,6 @@
 from pybleno import *
 import subprocess
+import logging
 
 class HardwareClockSyncCharacteristic(Characteristic):
     CYBLE_GATT_ERR_HTS_OUT_OF_RANGE = 0x80
@@ -20,12 +21,12 @@ class HardwareClockSyncCharacteristic(Characteristic):
                 dateString += chr(readUInt8(data, i))
             try:
                 shellResult = subprocess.run(['date', '-s', '{}'.format(dateString)], stdout=subprocess.PIPE).stdout.decode('utf-8')
-                print('New date: ' + shellResult)
+                logging.debug('New date: ' + shellResult)
                 shellResult = subprocess.run(['hwclock', '-w'], stdout=subprocess.PIPE).stdout.decode('utf-8')
-                print('New hwclock: ' + subprocess.run(['hwclock', '-r'], stdout=subprocess.PIPE).stdout.decode('utf-8'))
+                logging.debug('New hwclock: ' + subprocess.run(['hwclock', '-r'], stdout=subprocess.PIPE).stdout.decode('utf-8'))
                 callback(Characteristic.RESULT_SUCCESS)
-            except:
-                traceback.print_exc()
+            except Exception as e:
+                logging.exception(e)
                 callback(Characteristic.RESULT_UNLIKELY_ERROR)
         
     def onReadRequest(self, offset, callback):

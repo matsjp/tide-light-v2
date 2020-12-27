@@ -2,6 +2,7 @@ from pybleno import *
 import array
 import traceback
 from wifi import Cell
+import logging
 
 class WifiScanCharacteristic(Characteristic):
     CYBLE_GATT_ERR_HTS_OUT_OF_RANGE = 0x80
@@ -40,17 +41,17 @@ class WifiScanCharacteristic(Characteristic):
                 callback(Characteristic.RESULT_SUCCESS)
                     
                 
-            except:
-                traceback.print_exc()
+            except Exception as e:
+                logging.exception(e)
                 callback(Characteristic.RESULT_UNLIKELY_ERROR)
     
     def onSubscribe(self, maxValueSize, updateValueCallback):
-        print('EchoCharacteristic - onSubscribe')
+        logging.info('WifiScanCharacteristic - onSubscribe')
         
         self._updateValueCallback = updateValueCallback
 
     def onUnsubscribe(self):
-        print('EchoCharacteristic - onUnsubscribe');
+        logging.info('WifiScanCharacteristic - onUnsubscribe')
         
         self._updateValueCallback = None
 

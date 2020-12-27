@@ -2,6 +2,7 @@ from pybleno import *
 import array
 from Config import *
 import traceback
+import logging
 
 class LdrActiveCharacteristic(Characteristic):
     CYBLE_GATT_ERR_HTS_OUT_OF_RANGE = 0x80
@@ -42,8 +43,8 @@ class LdrActiveCharacteristic(Characteristic):
                     callback(Characteristic.RESULT_SUCCESS)
                 except ValueError:
                     callback(self.CYBLE_GATT_ERR_HTS_OUT_OF_RANGE)
-                except:
-                    traceback.print_exc()
+                except Exception as e:
+                    logging.exception(e)
                     callback(Characteristic.RESULT_UNLIKELY_ERROR)
     
     def validateLdrActive(self, ldrActive):

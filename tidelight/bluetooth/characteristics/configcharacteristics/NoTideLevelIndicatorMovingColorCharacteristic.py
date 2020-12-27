@@ -2,6 +2,7 @@ from pybleno import *
 import array
 import traceback
 import re
+import logging
 
 class NoTideLevelIndicatorMovingColorCharacteristic(Characteristic):
     CYBLE_GATT_ERR_HTS_OUT_OF_RANGE = 0x80
@@ -51,8 +52,8 @@ class NoTideLevelIndicatorMovingColorCharacteristic(Characteristic):
                     callback(Characteristic.RESULT_SUCCESS)
                 except ValueError:
                     callback(self.CYBLE_GATT_ERR_HTS_OUT_OF_RANGE)
-                except:
-                    traceback.print_exc()
+                except Exception as e:
+                    logging.exception(e)
                     callback(Characteristic.RESULT_UNLIKELY_ERROR)
     
     def splitList(self, lst):

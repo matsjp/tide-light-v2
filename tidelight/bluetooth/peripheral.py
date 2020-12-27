@@ -3,6 +3,7 @@ from .services.ConfigService import ConfigService
 from .services.WifiService import WifiService
 from .services.OfflineService import OfflineService
 import time
+import logging
 
 
 class Peripheral:
@@ -29,7 +30,7 @@ class Peripheral:
             #
             def on_startAdvertising(err):
                 if err:
-                    print(err)
+                    logging.error(err)
 
             self.bleno.startAdvertising(self.name, self.uuids, on_startAdvertising)
         else:
@@ -37,7 +38,7 @@ class Peripheral:
 
     def onAdvertisingStart(self, error):
         if not error:
-            print('advertising...')
+            logging.info('advertising...')
 
             self.bleno.setServices([
                 self.configService,

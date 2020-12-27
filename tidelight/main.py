@@ -1,5 +1,14 @@
 from ThreadManager import ThreadManager
-print('Starting tide light script')
+import logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler("debug.log"),
+        logging.StreamHandler()
+    ]
+)
+logging.info('Starting tide light script')
 
 manager = ThreadManager()
 try:

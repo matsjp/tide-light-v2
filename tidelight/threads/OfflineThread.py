@@ -6,6 +6,7 @@ from kartverket_tide_api.parsers import LocationDataParser
 from xml.etree.ElementTree import ParseError
 from util import get_time_in_1day, TideTime, get_time_in_30s
 from TideTimeCollection import TideTimeCollection
+import logging
 
 class OfflineThread(Thread):
     def __init__(self, command_queue, xml_lock, tide_time_collection, tide_time_collection_lock, thread_manager, name=None):
@@ -28,22 +29,22 @@ class OfflineThread(Thread):
         while not self.is_stopping:
             if next_run < datetime.now().timestamp():
                 with self.xml_lock:
-                    print("Offline: xml lock aquired")
+                    logging.info("Offline: xml lock aquired")
                     with self.tide_time_collection_lock:
-                        print("Offline: collection lock aquired")
+                        logging.info("Offline: collection lock aquired")
                         try:
                             with open('offline.xml', 'r') as xmlfile:
-                                print("Starting to read file")
+                                logging.info("Starting to read file")
                                 xml = xmlfile.read()
-                                print("done reading file")
+                                logging.info("done reading file")
                             parser = LocationDataParser(xml)
-                            print("parsing data")
+                            logging.info("parsing data")
                             waterlevels = parser.parse_response()['data']
-                            print("done parsing")
+                            logging.info("done parsing")
                             coll = []
                             time_threshold = (datetime.now() + timedelta(days=7)).timestamp()
                             
-                            print("adding data to coll")
+                            logging.info("adding data to coll")
                             for waterlevel in waterlevels:
                                 tide = waterlevel.tide
                                 timestring = waterlevel.time
@@ -51,35 +52,35 @@ class OfflineThread(Thread):
                                 timestamp = datetime.strptime(timestring, "%Y-%m-%dT%H:%M:%S%z").timestamp()
                                 if timestamp < time_threshold:
                                     coll.append(TideTime(tide=tide, timestamp=timestamp, time=timestring))
-                            print("done")
+                            logging.info("done")
 
                             now = datetime.now().timestamp()
-                            print("adding data to tide time collection")
+                            logging.info("adding data to tide time collection")
                             self.tide_time_collection.insert_tide_times(coll, now)
                             #TODO
                             if self.tide_time_collection.is_empty():
                                 pass
                                 #self._xml_error(None)
                             self.tide_time_collection_lock.notify_all()
-                            print("offline data ready")
+                            logging.info("offline data ready")
                             next_run = get_time_in_1day()
                         except FileNotFoundError as e:
-                            print(e)
+                            logging.exception(e)
                             #self._xml_error(None)
                             next_run = get_time_in_30s()
                             self.tide_time_collection_lock.notify_all()
                         except ParseError as e:
-                            print(e)
+                            logging.exception(e)
                             #self._xml_error(None)
                             next_run = get_time_in_30s()
                             self.tide_time_collection_lock.notify_all()
                         except CannotFindElementException as e:
-                            print(e)
+                            logging.exception(e)
                             #self._xml_error(None)
                             next_run = get_time_in_30s()
                             self.tide_time_collection_lock.notify_all()
                         except Exception as e:
-                            print(e)
+                            logging.exception(e)
                             #self._xml_error(None)
                             next_run = get_time_in_30s()
                             self.tide_time_collection_lock.notify_all()
@@ -99,23 +100,23 @@ class OfflineThread(Thread):
     
     def update_data_quick(self, data):
         with self.xml_lock:
-            print("Offline: xml lock aquired")
+            logging.info("Offline: xml lock aquired")
             with self.tide_time_collection_lock:
                 self.tide_time_collection.clear()
-                print("Offline: collection lock aquired")
+                logging.info("Offline: collection lock aquired")
                 try:
                     with open('offline.xml', 'r') as xmlfile:
-                        print("Starting to read file")
+                        logging.info("Starting to read file")
                         xml = xmlfile.read()
-                        print("done reading file")
+                        logging.info("done reading file")
                     parser = LocationDataParser(xml)
-                    print("parsing data")
+                    logging.info("parsing data")
                     waterlevels = parser.parse_response()['data']
-                    print("done parsing")
+                    logging.info("done parsing")
                     coll = []
                     time_threshold = (datetime.now() + timedelta(days=7)).timestamp()
                     
-                    print("adding data to coll")
+                    logging.info("adding data to coll")
                     for waterlevel in waterlevels:
                         tide = waterlevel.tide
                         timestring = waterlevel.time
@@ -123,31 +124,31 @@ class OfflineThread(Thread):
                         timestamp = datetime.strptime(timestring, "%Y-%m-%dT%H:%M:%S%z").timestamp()
                         if timestamp < time_threshold:
                             coll.append(TideTime(tide=tide, timestamp=timestamp, time=timestring))
-                    print("done")
+                    logging.info("done")
 
                     now = datetime.now().timestamp()
-                    print("adding data to tide time collection")
+                    logging.info("adding data to tide time collection")
                     self.tide_time_collection.insert_tide_times(coll, now)
                     #TODO
                     if self.tide_time_collection.is_empty():
                         pass
                         #self._xml_error(None)
                     self.tide_time_collection_lock.notify_all()
-                    print("offline data ready")
+                    logging.info("offline data ready")
                 except FileNotFoundError as e:
-                    print(e)
+                    logging.exception(e)
                     #self._xml_error(None)
                     self.tide_time_collection_lock.notify_all()
                 except ParseError as e:
-                    print(e)
+                    logging.exception(e)
                     #self._xml_error(None)
                     self.tide_time_collection_lock.notify_all()
                 except CannotFindElementException as e:
-                    print(e)
+                    logging.exception(e)
                     #self._xml_error(None)
                     self.tide_time_collection_lock.notify_all()
                 except Exception as e:
-                    print(e)
+                    logging.exception(e)
                     #self._xml_error(None)
                     self.tide_time_collection_lock.notify_all()
             
@@ -157,23 +158,23 @@ class OfflineThread(Thread):
 
     def update_data(self, data):
         with self.xml_lock:
-            print("Offline: xml lock aquired")
+            logging.info("Offline: xml lock aquired")
             with self.tide_time_collection_lock:
                 self.tide_time_collection.clear()
-                print("Offline: collection lock aquired")
+                logging.info("Offline: collection lock aquired")
                 try:
                     with open('offline.xml', 'r') as xmlfile:
-                        print("Starting to read file")
+                        logging.info("Starting to read file")
                         xml = xmlfile.read()
-                        print("done reading file")
+                        logging.info("done reading file")
                     parser = LocationDataParser(xml)
-                    print("parsing data")
+                    logging.info("parsing data")
                     waterlevels = parser.parse_response()['data']
-                    print("done parsing")
+                    logging.info("done parsing")
                     coll = []
                     time_threshold = (datetime.now() + timedelta(days=7)).timestamp()
 
-                    print("adding data to coll")
+                    logging.info("adding data to coll")
                     for waterlevel in waterlevels:
                         tide = waterlevel.tide
                         timestring = waterlevel.time
@@ -181,31 +182,31 @@ class OfflineThread(Thread):
                         timestamp = datetime.strptime(timestring, "%Y-%m-%dT%H:%M:%S%z").timestamp()
                         if timestamp < time_threshold:
                             coll.append(TideTime(tide=tide, timestamp=timestamp, time=timestring))
-                    print("done")
+                    logging.info("done")
 
                     now = datetime.now().timestamp()
-                    print("adding data to tide time collection")
+                    logging.info("adding data to tide time collection")
                     self.tide_time_collection.insert_tide_times(coll, now)
                     # TODO
                     if self.tide_time_collection.is_empty():
                         pass
                         # self._xml_error(None)
                     self.tide_time_collection_lock.notify_all()
-                    print("offline data ready")
+                    logging.info("offline data ready")
                 except FileNotFoundError as e:
-                    print(e)
+                    logging.exception(e)
                     # self._xml_error(None)
                     self.tide_time_collection_lock.notify_all()
                 except ParseError as e:
-                    print(e)
+                    logging.exception(e)
                     # self._xml_error(None)
                     self.tide_time_collection_lock.notify_all()
                 except CannotFindElementException as e:
-                    print(e)
+                    logging.exception(e)
                     # self._xml_error(None)
                     self.tide_time_collection_lock.notify_all()
                 except Exception as e:
-                    print(e)
+                    logging.exception(e)
                     # self._xml_error(None)
                     self.tide_time_collection_lock.notify_all()
 

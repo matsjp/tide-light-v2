@@ -2,6 +2,7 @@ from pybleno import *
 import array
 from Config import *
 import traceback
+import logging
 
 class LatLonCharacteristic(Characteristic):
     CYBLE_GATT_ERR_HTS_OUT_OF_RANGE = 0x80
@@ -44,25 +45,23 @@ class LatLonCharacteristic(Characteristic):
                 self.config.setLatLon(lat, lon)
                 callback(Characteristic.RESULT_SUCCESS)
             except ValueError as e:
-                print(e)
-                print('ValueError')
                 callback(self.CYBLE_GATT_ERR_HTS_OUT_OF_RANGE)
-            except:
-                traceback.print_exc()
+            except Exception as e:
+                logging.exception(e)
                 callback(Characteristic.RESULT_UNLIKELY_ERROR)
 
     def onSubscribe(self, maxValueSize, updateValueCallback):
-        print('EchoCharacteristic - onSubscribe')
+        logging.info('LatLonCharacteristic - onSubscribe')
 
         self._updateValueCallback = updateValueCallback
 
     def onUnsubscribe(self):
-        print('EchoCharacteristic - onUnsubscribe')
+        logging.info('LatlonCharacteristic - onUnsubscribe')
 
         self._updateValueCallback = None
 
     def notify(self, data):
-        print("Sending notification")
+        logging.info("LatLonCharacteristic - sending notification")
         self._updateValueCallback(data)
 
 

@@ -1,6 +1,7 @@
 import time
 from threading import Thread
 from queue import Queue
+import logging
 
 from rpi_ws281x import Color
 
@@ -148,7 +149,7 @@ class StripControllerThread(Thread):
                     self.strip.setPixelColor(i, Color(0, 0, 0))
             self.strip.show()
             self.strip_lock.notify_all()
-            print(on)
+            logging.debug(on)
         time.sleep(5)
 
     def led_regular(self, strip, led, direction, led_count, moving_color_top, moving_color_bottom, still_color_top,

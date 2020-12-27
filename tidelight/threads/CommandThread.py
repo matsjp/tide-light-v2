@@ -1,4 +1,5 @@
 from threading import Thread
+import logging
 
 
 class CommandThread(Thread):
@@ -13,7 +14,7 @@ class CommandThread(Thread):
 
     def run(self):
         while True:
-            print("Waiting for command")
+            logging.info("Waiting for command")
             command = input()
             try:
                 self.handle_command(CommandCommand(command, None))

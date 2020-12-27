@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import requests
 from kartverket_tide_api import TideApi
 from kartverket_tide_api.parsers import LocationDataParser
+import logging
 
 from util import TideTime, get_next_api_run, get_time_in_30s, get_next_time_to, get_next_time_from, get_time_in_1day
 
@@ -32,16 +33,16 @@ class LocationDataThread(Thread):
     def run(self):
         while not self.is_stopping:
             if self.next_run < datetime.now().timestamp():
-                print('Before acquiring')
+                logging.info('Before acquiring')
                 with self.xml_lock:
-                    print("Location acquire")
+                    logging.info("Location acquire")
                     if datetime.now().timestamp() < self.next_run:
-                        print('too early')
-                        print("Location release: too early")
+                        logging.info('too early')
+                        logging.info("Location release: too early")
                     else:
-                        print('Going to try sending request')
+                        logging.info('Going to try sending request')
                         try:
-                            print("sending request")
+                            logging.info("sending request")
                             response = self.api.get_location_data(self.lon, self.lat, get_next_time_from(),
                                                                   get_next_time_to(), 'TAB')
 
@@ -57,34 +58,34 @@ class LocationDataThread(Thread):
                                             os.remove("offline.xml")
                                         os.rename("download.xml", "offline.xml")
                                     except Exception as e:
-                                        print(e)
+                                        logging.exception(e)
 
 
-                            print("Location release: waiting for next data download time")
+                            logging.info("Location release: waiting for next data download time")
                             self.next_run = get_next_api_run()
                         except requests.exceptions.Timeout as e:
-                            print(e)
-                            print('Connection timeout')
-                            print("Location release: 30s timeout")
+                            logging.exception(e)
+                            logging.error('Connection timeout')
+                            logging.info("Location release: 30s timeout")
                             self.next_run = get_time_in_30s()
                         except requests.exceptions.ConnectionError as e:
-                            print(e)
-                            print('Connection error')
-                            print('Location release: 30s connection error')
+                            logging.exception(e)
+                            logging.error('Connection error')
+                            logging.info('Location release: 30s connection error')
                             self.next_run = get_time_in_30s()
                         except requests.exceptions.TooManyRedirects as e:
-                            print(e)
-                            print('TooManyRedirects')
-                            print('Location release: 30s TooManyRedirects')
+                            logging.exception(e)
+                            logging.error('TooManyRedirects')
+                            logging.info('Location release: 30s TooManyRedirects')
                             self.next_run = get_time_in_30s()
                         except requests.exceptions.RequestException as e:
-                            print(e)
-                            print('TooManyRedirects')
-                            print('Location release: 30s RequestException')
+                            logging.exception(e)
+                            logging.error('TooManyRedirects')
+                            logging.info('Location release: 30s RequestException')
                             self.next_run = get_time_in_30s()
                         except:
-                            print("Error occured: ", sys.exc_info()[0])
-                            print('Location release: 30s unknown error')
+                            logging.exception("Error occured: %s", sys.exc_info()[0])
+                            logging.info('Location release: 30s unknown error')
                             self.next_run = get_time_in_30s()
                     self.xml_lock.notify_all()
 
@@ -101,7 +102,7 @@ class LocationDataThread(Thread):
         self.lon = data['lon']
         with self.xml_lock:
             try:
-                print("sending request")
+                logging.info("sending request")
                 fromtime = get_next_time_from()
                 totime = datetime.now() + timedelta(days=1)
                 totime = totime.strftime("%Y-%m-%dT%H:%M")
@@ -124,35 +125,35 @@ class LocationDataThread(Thread):
                     raise Exception
 
 
-                print("Location release: waiting for next data download time")
+                logging.info("Location release: waiting for next data download time")
                 self.next_run = get_next_api_run()
             except requests.exceptions.Timeout as e:
-                print(e)
-                print('Connection timeout')
-                print("Location release: 30s timeout")
+                logging.exception(e)
+                logging.error('Connection timeout')
+                logging.info("Location release: 30s timeout")
                 self.writeBlankFile()
                 self.next_run = get_time_in_30s()
             except requests.exceptions.ConnectionError as e:
-                print(e)
-                print('Connection error')
-                print('Location release: 30s connection error')
+                logging.exception(e)
+                logging.error('Connection error')
+                logging.info('Location release: 30s connection error')
                 self.writeBlankFile()
                 self.next_run = get_time_in_30s()
             except requests.exceptions.TooManyRedirects as e:
-                print(e)
-                print('TooManyRedirects')
-                print('Location release: 30s TooManyRedirects')
+                logging.exception(e)
+                logging.error('TooManyRedirects')
+                logging.info('Location release: 30s TooManyRedirects')
                 self.writeBlankFile()
                 self.next_run = get_time_in_30s()
             except requests.exceptions.RequestException as e:
-                print(e)
-                print('TooManyRedirects')
-                print('Location release: 30s RequestException')
+                logging.exception(e)
+                logging.error('TooManyRedirects')
+                logging.info('Location release: 30s RequestException')
                 self.writeBlankFile()
                 self.next_run = get_time_in_30s()
             except:
-                print("Error occured: ", sys.exc_info()[0])
-                print('Location release: 30s unknown error')
+                logging.exception("Error occured: ", sys.exc_info()[0])
+                logging.info('Location release: 30s unknown error')
                 self.writeBlankFile()
                 self.next_run = get_time_in_30s()
             self.xml_lock.notify_all()
@@ -163,7 +164,7 @@ class LocationDataThread(Thread):
         self.lon = data['lon']
         with self.xml_lock:
             try:
-                print("sending request")
+                logging.info("sending request")
                 fromtime = get_next_time_from()
                 totime = get_next_time_to()
                 response = self.api.get_location_data(self.lon, self.lat, fromtime,
@@ -185,35 +186,35 @@ class LocationDataThread(Thread):
                     raise Exception
 
 
-                print("Location release: waiting for next data download time")
+                logging.info("Location release: waiting for next data download time")
                 self.next_run = get_next_api_run()
             except requests.exceptions.Timeout as e:
-                print(e)
-                print('Connection timeout')
-                print("Location release: 30s timeout")
+                logging.exception(e)
+                logging.error('Connection timeout')
+                logging.info("Location release: 30s timeout")
                 self.writeBlankFile()
                 self.next_run = get_time_in_30s()
             except requests.exceptions.ConnectionError as e:
-                print(e)
-                print('Connection error')
-                print('Location release: 30s connection error')
+                logging.exception(e)
+                logging.error('Connection error')
+                logging.info('Location release: 30s connection error')
                 self.writeBlankFile()
                 self.next_run = get_time_in_30s()
             except requests.exceptions.TooManyRedirects as e:
-                print(e)
-                print('TooManyRedirects')
-                print('Location release: 30s TooManyRedirects')
+                logging.exception(e)
+                logging.error('TooManyRedirects')
+                logging.info('Location release: 30s TooManyRedirects')
                 self.writeBlankFile()
                 self.next_run = get_time_in_30s()
             except requests.exceptions.RequestException as e:
-                print(e)
-                print('TooManyRedirects')
-                print('Location release: 30s RequestException')
+                logging.exception(e)
+                logging.error('TooManyRedirects')
+                logging.info('Location release: 30s RequestException')
                 self.writeBlankFile()
                 self.next_run = get_time_in_30s()
             except:
-                print("Error occured: ", sys.exc_info()[0])
-                print('Location release: 30s unknown error')
+                logging.exception("Error occured: %s", sys.exc_info()[0])
+                logging.info('Location release: 30s unknown error')
                 self.writeBlankFile()
                 self.next_run = get_time_in_30s()
             self.xml_lock.notify_all()
