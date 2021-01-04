@@ -64,14 +64,22 @@ def internetConnection():
     return True
 
 
-def color_converter(color):
+def color_converter(color, color_format):
     color_list = json.loads(color)
-    return Color(color_list[0], color_list[1], color_list[2])
+    if color_format == "bgr":
+        return Color(color_list[2], color_list[1], color_list[0])
+    else:
+        return Color(color_list[0], color_list[1], color_list[2])
 
 
-def colors_converter(colors):
+def colors_converter(colors, color_format):
     temp_colors_list = json.loads(colors)
     colors_list = []
-    for color in temp_colors_list:
-        colors_list.append(Color(color[0], color[1], color[2]))
-    return colors_list
+    if color_format == "bgr":
+        for color in temp_colors_list:
+            colors_list.append(Color(color[2], color[1], color[0]))
+        return colors_list
+    else:
+        for color in temp_colors_list:
+            colors_list.append(Color(color[0], color[1], color[2]))
+        return colors_list

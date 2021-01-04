@@ -159,7 +159,7 @@ class ThreadManager:
             self.stop_ldr_thread()
 
     def change_high_tide_direction_color(self, new_color):
-        color = color_converter(new_color)
+        color = color_converter(new_color, self.color_format)
         if color != self.high_tide_direction_color:
             self.high_tide_direction_color = color
             if thread_running(self.controller_name):
@@ -167,7 +167,7 @@ class ThreadManager:
                                                                     color))
 
     def change_low_tide_direction_color(self, new_color):
-        color = color_converter(new_color)
+        color = color_converter(new_color, self.color_format)
         if color != self.low_tide_direction_color:
             self.low_tide_direction_color = color
             if thread_running(self.controller_name):
@@ -175,7 +175,7 @@ class ThreadManager:
                                                                     color))
 
     def change_tide_level_indicator_color(self, new_color):
-        color = color_converter(new_color)
+        color = color_converter(new_color, self.color_format)
         if color != self.tide_level_indicator_color:
             self.tide_level_indicator_color = color
             if thread_running(self.controller_name):
@@ -183,7 +183,7 @@ class ThreadManager:
                                                                     color))
 
     def change_no_tide_level_indicator_color(self, new_color):
-        color = color_converter(new_color)
+        color = color_converter(new_color, self.color_format)
         if color != self.no_tide_level_indicator_color:
             self.no_tide_level_indicator_color = color
             if thread_running(self.controller_name):
@@ -191,7 +191,7 @@ class ThreadManager:
                                                                     color))
 
     def change_tide_level_indicator_moving_colors(self, new_colors):
-        colors = colors_converter(new_colors)
+        colors = colors_converter(new_colors, self.color_format)
         if colors != self.tide_level_indicator_moving_colors:
             self.tide_level_indicator_moving_colors = colors
             if thread_running(self.controller_name):
@@ -199,7 +199,7 @@ class ThreadManager:
                                                                     colors))
 
     def change_no_tide_level_indicator_moving_colors(self, new_colors):
-        colors = colors_converter(new_colors)
+        colors = colors_converter(new_colors, self.color_format)
         if colors != self.no_tide_level_indicator_moving_colors:
             self.no_tide_level_indicator_moving_colors = colors
             if thread_running(self.controller_name):
@@ -220,12 +220,12 @@ class ThreadManager:
         self.ldr_active = ast.literal_eval(self.config.getLdrActive())
         self.color_format = self.config.getColorFormat()
 
-        self.high_tide_direction_color = color_converter(self.config.getHighTideDirectionColor())
-        self.low_tide_direction_color = color_converter(self.config.getLowTideDirectionColor())
-        self.tide_level_indicator_color = color_converter(self.config.getTideLevelIndicatorColor())
-        self.no_tide_level_indicator_color = color_converter(self.config.getNoTideLevelIndicatorColor())
-        self.tide_level_indicator_moving_colors = colors_converter(self.config.getTideLevelIndicatorMovingColor())
-        self.no_tide_level_indicator_moving_colors = colors_converter(self.config.getNoTideLevelIndicatorMovingColor())
+        self.high_tide_direction_color = color_converter(self.config.getHighTideDirectionColor(), self.color_format)
+        self.low_tide_direction_color = color_converter(self.config.getLowTideDirectionColor(), self.color_format)
+        self.tide_level_indicator_color = color_converter(self.config.getTideLevelIndicatorColor(), self.color_format)
+        self.no_tide_level_indicator_color = color_converter(self.config.getNoTideLevelIndicatorColor(), self.color_format)
+        self.tide_level_indicator_moving_colors = colors_converter(self.config.getTideLevelIndicatorMovingColor(), self.color_format)
+        self.no_tide_level_indicator_moving_colors = colors_converter(self.config.getNoTideLevelIndicatorMovingColor(), self.color_format)
 
         self.moving_speed = float(self.config.getMovingSpeed())
         self.moving_pattern = self.config.getMovingPattern()
