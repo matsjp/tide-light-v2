@@ -7,6 +7,10 @@ import json
 from rpi_ws281x import Color
 
 from tidetime import TideTime
+try:
+    import httplib
+except:
+    import http.client as httplib
 
 
 def get_next_time_from():
@@ -60,8 +64,14 @@ def colors_string_to_list(colors_string):
 
 
 def internetConnection():
-    # TODO implement this
-    return True
+    conn = httplib.HTTPConnection("www.google.com", timeout=5)
+    try:
+        conn.request("HEAD", "/")
+        conn.close()
+        return True
+    except:
+        conn.close()
+        return False
 
 
 def color_converter(color, color_format):

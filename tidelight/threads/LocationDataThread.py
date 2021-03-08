@@ -152,7 +152,7 @@ class LocationDataThread(Thread):
                 self.writeBlankFile()
                 self.next_run = get_time_in_30s()
             except:
-                logging.exception("Error occured: ", sys.exc_info()[0])
+                logging.exception("Error occured: %s", sys.exc_info()[0])
                 logging.info('Location release: 30s unknown error')
                 self.writeBlankFile()
                 self.next_run = get_time_in_30s()

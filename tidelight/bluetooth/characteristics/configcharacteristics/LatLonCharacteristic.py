@@ -62,7 +62,11 @@ class LatLonCharacteristic(Characteristic):
 
     def notify(self, data):
         logging.info("LatLonCharacteristic - sending notification")
-        self._updateValueCallback(data)
+        #TODO figure out this error
+        try:
+            self._updateValueCallback(data)
+        except TypeError as e:
+            pass
 
 
 

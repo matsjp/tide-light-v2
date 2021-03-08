@@ -25,7 +25,7 @@ class LdrActiveCharacteristic(Characteristic):
             data = array.array('B', [0] * 1)
             stateCode = list(ldrStates.keys())[list(ldrStates.values()).index(state)]
             writeUInt8(data, stateCode, 0)
-            callback(Characteristic.RESULT_SUCCESS, data);
+            callback(Characteristic.RESULT_SUCCESS, data)
 
     def onWriteRequest(self, data, offset, withoutResponse, callback):
         if offset:

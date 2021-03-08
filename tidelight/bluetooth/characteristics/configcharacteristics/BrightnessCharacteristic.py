@@ -22,7 +22,7 @@ class BrightnessCharacteristic(Characteristic):
             brightness = int(self.config.getBrightness())
             data = array.array('B', [0] * 1)
             writeUInt8(data, brightness, 0)
-            callback(Characteristic.RESULT_SUCCESS, data);
+            callback(Characteristic.RESULT_SUCCESS, data)
 
     def onWriteRequest(self, data, offset, withoutResponse, callback):
         if offset:
