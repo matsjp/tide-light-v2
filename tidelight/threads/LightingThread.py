@@ -14,7 +14,6 @@ class LightingThread(Thread):
         self.LED_COUNT = LED_COUNT
         self.tide_time_collection_lock = tide_time_collection_lock
         self.tide_time_collection = tide_time_collection
-        self.error_count = 0
         self.handlers = {
             LightingCommand.STOP: self.stop,
             LightingCommand.UPDATE_DATA: self.update_data
@@ -29,25 +28,13 @@ class LightingThread(Thread):
                     #print("Light acquire")
                     if self.tide_time_collection.is_empty():
                         self.tide_time_collection_lock.notify_all()
-                        """if self.offline_mode:
-                            # TODO red blink
-                            self.reply_quene.put(LightingReply(LightingReply.XMLERROR, None))
-                            print('XML error tide_time_collection is empty')"""
-                        #print("Light release")
                     else:
                         now = datetime.now().timestamp()
                         # TODO: better variable name
                         time_stamp_collection = self.tide_time_collection.get_timestamp_collection(now)
-                        if time_stamp_collection is None and self.error_count == 4:
+                        if time_stamp_collection is None:
                             self.tide_time_collection_lock.notify_all()
-                            self.error_count += 1
-                            """if self.offline_mode:
-                                # TODO red blink
-                                print('XML error time_stamp_collection is None')
-                                self.reply_quene.put(LightingReply(LightingReply.XMLERROR, None))"""
-                            #print("Light release")
                         else:
-                            self.error_count = 0
                             timestamp = time_stamp_collection[0]
                             led = time_stamp_collection[1]
                             direction = time_stamp_collection[2]

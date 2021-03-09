@@ -36,7 +36,7 @@ class ThreadManager:
 
         self.handlers = {
             ThreadManager.LIGHTINGHANDLERS: {
-                #LightingReply.XMLERROR: self._xml_error
+                
             },
             ThreadManager.LOCATIONHANDLERS: {
                 #LocationReply.LOCATION_UPDATE: self.location_update
@@ -74,8 +74,6 @@ class ThreadManager:
         self.controller_name = 'controller'
         self.pruner_name = 'pruner'
         self.offline_name = 'offline'
-        # TODO look into xml errors
-        self.xml_error = False
         self.shutdown = False
 
     def run(self):
@@ -395,10 +393,6 @@ class ThreadManager:
         GPIO.cleanup()
         logging.info("Shutting down the tide light program")
         self.shutdown = True
-
-    def xml_error(self):
-        self.stop_lighting_thread()
-        self.change_moving_pattern('red_blink')
 
     def location_update_quick(self):
         logging.info("updating offline data")

@@ -59,29 +59,25 @@ class OfflineThread(Thread):
                             self.tide_time_collection.insert_tide_times(coll, now)
                             #TODO
                             if self.tide_time_collection.is_empty():
-                                pass
-                                #self._xml_error(None)
+                                next_run = get_time_in_30s()
+                                return
                             self.tide_time_collection_lock.notify_all()
                             logging.info("offline data ready")
                             next_run = get_time_in_1day()
                         except FileNotFoundError as e:
                             logging.exception(e)
-                            #self._xml_error(None)
                             next_run = get_time_in_30s()
                             self.tide_time_collection_lock.notify_all()
                         except ParseError as e:
                             logging.exception(e)
-                            #self._xml_error(None)
                             next_run = get_time_in_30s()
                             self.tide_time_collection_lock.notify_all()
                         except CannotFindElementException as e:
                             logging.exception(e)
-                            #self._xml_error(None)
                             next_run = get_time_in_30s()
                             self.tide_time_collection_lock.notify_all()
                         except Exception as e:
                             logging.exception(e)
-                            #self._xml_error(None)
                             next_run = get_time_in_30s()
                             self.tide_time_collection_lock.notify_all()
                     
@@ -129,27 +125,19 @@ class OfflineThread(Thread):
                     now = datetime.now().timestamp()
                     logging.info("adding data to tide time collection")
                     self.tide_time_collection.insert_tide_times(coll, now)
-                    #TODO
-                    if self.tide_time_collection.is_empty():
-                        pass
-                        #self._xml_error(None)
                     self.tide_time_collection_lock.notify_all()
                     logging.info("offline data ready")
                 except FileNotFoundError as e:
                     logging.exception(e)
-                    #self._xml_error(None)
                     self.tide_time_collection_lock.notify_all()
                 except ParseError as e:
                     logging.exception(e)
-                    #self._xml_error(None)
                     self.tide_time_collection_lock.notify_all()
                 except CannotFindElementException as e:
                     logging.exception(e)
-                    #self._xml_error(None)
                     self.tide_time_collection_lock.notify_all()
                 except Exception as e:
                     logging.exception(e)
-                    #self._xml_error(None)
                     self.tide_time_collection_lock.notify_all()
             
             
@@ -187,27 +175,19 @@ class OfflineThread(Thread):
                     now = datetime.now().timestamp()
                     logging.info("adding data to tide time collection")
                     self.tide_time_collection.insert_tide_times(coll, now)
-                    # TODO
-                    if self.tide_time_collection.is_empty():
-                        pass
-                        # self._xml_error(None)
                     self.tide_time_collection_lock.notify_all()
                     logging.info("offline data ready")
                 except FileNotFoundError as e:
                     logging.exception(e)
-                    # self._xml_error(None)
                     self.tide_time_collection_lock.notify_all()
                 except ParseError as e:
                     logging.exception(e)
-                    # self._xml_error(None)
                     self.tide_time_collection_lock.notify_all()
                 except CannotFindElementException as e:
                     logging.exception(e)
-                    # self._xml_error(None)
                     self.tide_time_collection_lock.notify_all()
                 except Exception as e:
                     logging.exception(e)
-                    # self._xml_error(None)
                     self.tide_time_collection_lock.notify_all()
 
             self.xml_lock.notify_all()
