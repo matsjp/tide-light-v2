@@ -18,6 +18,7 @@ from bluetooth.characteristics.configcharacteristics.MovingPatternCharacteristic
 from bluetooth.characteristics.configcharacteristics.MovingSpeedCharacteristic import MovingSpeedCharacteristic
 from bluetooth.characteristics.configcharacteristics.LatLonCharacteristic import LatLonCharacteristic
 from bluetooth.characteristics.configcharacteristics.ResetCharacteristic import ResetCharacteristic
+from bluetooth.characteristics.configcharacteristics.LEDCountCharacteristic import LEDCountCharacteristic
 
 
 class ConfigService(BlenoPrimaryService):
@@ -40,5 +41,6 @@ class ConfigService(BlenoPrimaryService):
                 MovingPatternCharacteristic(config),
                 MovingSpeedCharacteristic(config),
                 self.latLonCharacteristic,
-                ResetCharacteristic(config)
+                ResetCharacteristic(config),
+                LEDCountCharacteristic(config)
             ]})

@@ -31,6 +31,20 @@ class Config():
             self.defaultConfig()
         if not self.validateConfig():
             self.defaultConfig()
+    
+    def getLEDCount(self):
+        config = self._getConfig()
+        count = config.get('ledstrip', 'led_count')
+        return count
+    
+    def setLEDCount(self, count):
+        if type(count) is not int:
+            raise ValueError('count must be int')
+        config = self._getConfig()
+        config.set('ledstrip', 'led_count', str(count))
+        self.writeConfig(config)
+        return count
+
 
     def getLatLon(self):
         config = self._getConfig()

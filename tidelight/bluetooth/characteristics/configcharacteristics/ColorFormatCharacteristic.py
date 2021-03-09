@@ -25,7 +25,7 @@ class ColorFormatCharacteristic(Characteristic):
             data = array.array('B', [0] * 1)
             formatCode = list(colorFormats.keys())[list(colorFormats.values()).index(colorFormat)]
             writeUInt8(data, formatCode, 0)
-            callback(Characteristic.RESULT_SUCCESS, data);
+            callback(Characteristic.RESULT_SUCCESS, data)
 
     def onWriteRequest(self, data, offset, withoutResponse, callback):
         if offset:

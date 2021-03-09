@@ -12,7 +12,7 @@ class InternetConnectionCharacteristic(Characteristic):
 
     def __init__(self):
         Characteristic.__init__(self, {
-            'uuid': 'ec10',
+            'uuid': 'ec11',
             'properties': ['read'],
             'value': None
           })
