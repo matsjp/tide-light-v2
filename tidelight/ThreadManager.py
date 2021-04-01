@@ -147,14 +147,14 @@ class ThreadManager:
                 self.ldr_command_queue.put(LdrCommand(LdrCommand.SETBRIGHTNESS, self.LED_BRIGHTNESS))
 
     def change_ldr_active(self, new_active):
-        running = thread_running(self.ldr_name)
+        self.ldr_command_queue.put(LdrCommand(LdrCommand.SETACTIVE, new_active))
 
-        if new_active and not thread_running:
+        """if new_active and not thread_running:
             self.ldr_active = new_active
             self.start_ldr_thread()
         elif not new_active and running:
             self.ldr_active = new_active
-            self.stop_ldr_thread()
+            self.stop_ldr_thread()"""
 
     def change_high_tide_direction_color(self, new_color):
         color = color_converter(new_color, self.color_format)

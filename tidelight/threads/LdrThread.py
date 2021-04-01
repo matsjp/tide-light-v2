@@ -14,10 +14,13 @@ class LdrThread(Thread):
         self.max_brightness = max_brightness
         self.strip = strip
         self.strip_lock = strip_lock
+        self.minLdrCount = 1
+        self.maxLdrCount = 250000
         self.oldmin = 1
         self.oldmax = 500000
-        self.newmin = 1
+        self.min_brightness = 1
         self.is_stopping = False
+        self.active = True
         self.handlers = {
             LdrCommand.STOP: self.stop,
             LdrCommand.SETBRIGHTNESS: self.set_brightness
@@ -25,7 +28,32 @@ class LdrThread(Thread):
 
     def run(self):
         while not self.is_stopping:
-            count = self.rc_time(self.ldr_pin)
+            if self.active:
+                ldrCount = self.rc_time(self.ldr_pin)
+                newBrightness = self.scale_and_invert(ldrCount)
+                if newBrightness != self.brightness:
+                    time.sleep(1)
+                    ldrCount = self.rc_time(self.ldr_pin)
+                    newBrightness2 = self.scale_and_invert(ldrCount)
+                    if newBrightness == newBrightness2:
+                        with self.strip_lock:
+                            self.strip.setBrightness(newBrightness)
+                            self.brightness = newBrightness
+                            self.strip_lock.notify_all()
+                    elif newBrightness < self.brightness and newBrightness2 < self.brightness:
+                        with self.strip_lock:
+                            b = self.brightness - int((self.brightness - newBrightness)/2)
+                            self.strip.setBrightness(b)
+                            self.brightness = b
+                            self.strip_lock.notify_all()
+                    elif newBrightness > self.brightness and newBrightness2 > self.brightness:
+                        with self.strip_lock:
+                            b = self.brightness + int((newBrightness - self.brightness)/2)
+                            self.strip.setBrightness(b)
+                            self.brightness = b
+                            self.strip_lock.notify_all()
+
+            """count = self.rc_time(self.ldr_pin)
             new_brightness = self.brightness_round(self.scale_and_invert(count))
             if new_brightness != self.brightness:
                 time.sleep(1)
@@ -35,7 +63,7 @@ class LdrThread(Thread):
                     with self.strip_lock:
                         self.strip.setBrightness(new_brightness)
                         self.brightness = new_brightness
-                        self.strip_lock.notify_all()
+                        self.strip_lock.notify_all()"""
             if not self.command_queue.empty():
                 command = self.command_queue.get()
                 self.handle_command(command)
@@ -60,13 +88,23 @@ class LdrThread(Thread):
         GPIO.setup(pin_to_circuit, GPIO.IN)
 
         # Count until the pin goes high
-        while GPIO.input(pin_to_circuit) == GPIO.LOW and count < 500000:
+        while GPIO.input(pin_to_circuit) == GPIO.LOW and count < self.maxLdrCount:
             count += 1
 
         return count
 
-    def scale_and_invert(self, oldvalue):
-        if oldvalue > self.oldmax:
+    def scale_and_invert(self, value):
+        if value > self.maxLdrCount:
+            value = self.maxLdrCount
+        scaled = int(((value - self.minLdrCount) * (self.max_brightness - self.min_brightness)/
+        (self.maxLdrCount - self.minLdrCount)) + self.min_brightness)
+        if scaled < self.min_brightness:
+            scaled = self.min_brightness
+        if scaled > self.max_brightness:
+            scaled = self.max_brightness
+        invert = self.max_brightness + self.min_brightness - scaled
+        return invert
+        """if oldvalue > self.oldmax:
             oldvalue = self.oldmax
         if oldvalue < self.oldmin:
             oldvalue = self.oldmin
@@ -76,7 +114,7 @@ class LdrThread(Thread):
         temp = middle - non_inverted
         if temp + middle < 1:
             return 1
-        return middle + temp
+        return middle + temp"""
 
     def stop(self, data):
         self.is_stopping = True
@@ -87,6 +125,13 @@ class LdrThread(Thread):
     def set_brightness(self, data):
         self.brightness = data
         self.max_brightness = data
+    
+    def set_active(self, data):
+        self.active = data
+        if data == False:
+            with self.strip_lock:
+                self.strip.setBrightness(self.max_brightness)
+                self.strip_lock.notify_all()
 
     def handle_command(self, command):
         self.handlers[command.command_type](command.data)
@@ -94,7 +139,7 @@ class LdrThread(Thread):
 
 
 class LdrCommand:
-    STOP, SETBRIGHTNESS = range(2)
+    STOP, SETBRIGHTNESS, SETACTIVE = range(3)
 
     def __init__(self, command_type, data):
         self.data = data
