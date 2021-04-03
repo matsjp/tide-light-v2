@@ -18,7 +18,7 @@ class LdrThread(Thread):
         self.maxLdrCount = 250000
         self.oldmin = 1
         self.oldmax = 500000
-        self.min_brightness = 1
+        self.min_brightness = 5
         self.is_stopping = False
         self.active = True
         self.handlers = {
