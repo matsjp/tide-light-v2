@@ -79,9 +79,9 @@ class ThreadManager:
     def run(self):
         GPIO.setmode(GPIO.BOARD)
         self.strip.begin()
-        for i in range(self.LED_COUNT):
+        """for i in range(self.LED_COUNT):
             self.strip.setPixelColor(i, Color(0, 255, 0))
-            self.strip.show()
+            self.strip.show()"""
         logging.info('starting bluetooth thread')
         self.start_bluetooth_thread()
         logging.info('starting offline mode thread')
