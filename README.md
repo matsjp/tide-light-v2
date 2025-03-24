@@ -4,7 +4,12 @@ During my studies, I started a tide light hobby project, which has grown over ti
 
 It is programmed in Python and runs on a Raspberry Pi. To determine the tide status, it fetches data from the Norwegian Mapping Authority's tide API. The tide light features a Bluetooth configuration interface, and I have built a website that uses Web Bluetooth to configure the tide location, adjust brightness, and connect the Pi to WiFi.  
 
-This project has been commercialized, and I have delivered lights to several customers. One of these customers is Thon Hotel Svolvær, for which I delivered a 10-meter-long tide light.  
+This project has been commercialized, and I have delivered lights to several customers. One of these customers is Thon Hotel Svolvær, for which I delivered a 10-meter-long tide light.
+
+## Images  
+
+![Tidelight Image 1](1641804358305.jpg)  
+![Tidelight Image 2](1641804371879.jpg)  
 
 
 
